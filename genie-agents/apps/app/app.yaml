@@ -1,0 +1,12 @@
+command: ['npm', 'run', 'start']
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: DATABRICKS_GENIE_SPACE_ID
+    valueFrom: genie-space
+  - name: GOLD_QUEUE_TABLE
+    valueFrom: queue-table
+  - name: GOLD_METRIC_VIEW
+    valueFrom: metric-view
+  - name: OPS_ACTIONS_TABLE
+    valueFrom: actions-table-read

@@ -1,0 +1,63 @@
+bundle:
+  name: pulso-retail-argentina
+
+variables:
+  sql_warehouse_id:
+    description: SQL Warehouse ID
+  genie_space_id:
+    description: Genie Space ID
+  genie_space_name:
+    description: Genie Space display name
+    default: Pulso Retail Argentina
+  catalog_name:
+    description: Catálogo creado en las notebooks
+
+resources:
+  apps:
+    pulso_retail:
+      name: pulso-retail-${workspace.current_user.short_name}
+      description: Centro de decisiones de inventario con Genie y write-back
+      source_code_path: ./
+      user_api_scopes:
+        - dashboards.genie
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+            permission: CAN_USE
+        - name: genie-space
+          genie_space:
+            name: ${var.genie_space_name}
+            space_id: ${var.genie_space_id}
+            permission: CAN_RUN
+        - name: queue-table
+          uc_securable:
+            securable_full_name: ${var.catalog_name}.gold.decision_queue
+            securable_type: TABLE
+            permission: SELECT
+        - name: metric-view
+          uc_securable:
+            securable_full_name: ${var.catalog_name}.gold.retail_performance_metrics
+            securable_type: TABLE
+            permission: SELECT
+        - name: actions-table-read
+          uc_securable:
+            securable_full_name: ${var.catalog_name}.ops.action_tasks
+            securable_type: TABLE
+            permission: SELECT
+        - name: actions-table-write
+          uc_securable:
+            securable_full_name: ${var.catalog_name}.ops.action_tasks
+            securable_type: TABLE
+            permission: MODIFY
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://REPLACE_WITH_WORKSPACE_HOST
+    variables:
+      sql_warehouse_id: REPLACE_WITH_WAREHOUSE_ID
+      genie_space_id: REPLACE_WITH_GENIE_SPACE_ID
+      catalog_name: workshop_argentina_equipo_01
