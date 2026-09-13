@@ -27,6 +27,7 @@ REQUIRED_FILES = [
     "app/package.json",
     "app/client/src/App.tsx",
     "app/server/routes/decision-routes.ts",
+    "dashboard/README.md",
     "docs/INSTRUCTOR_GUIDE.md",
 ]
 

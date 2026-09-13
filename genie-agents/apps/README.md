@@ -19,6 +19,7 @@ Cada participante:
 5. Configura y evalúa un Genie Space con reglas de negocio.
 6. Ejecuta una Databricks App con indicadores, Genie y write-back.
 7. Registra una decisión y comprueba que Genie puede consultarla.
+8. Genera un dashboard ejecutivo con Genie (Lab 3).
 
 ## Estructura
 
@@ -27,6 +28,7 @@ Cada participante:
 ├── notebooks/             Notebooks Databricks Source, en orden de ejecución
 ├── genie/                 Instrucciones, preguntas verificadas y evaluación
 ├── app/                   Databricks App (AppKit + React + TypeScript)
+├── dashboard/             Lab 3: prompt para dashboard AI/BI con Genie
 ├── docs/                  Arquitectura, guía del instructor y troubleshooting
 ├── PREWORK.md             Requisitos y validación previa
 └── Agenda Workshop...     Agenda original
@@ -43,6 +45,7 @@ Cada participante:
 | 4 | `genie/README.md` | 35–40 min | Genie Space evaluado |
 | 5 | `app/README.md` | 45–50 min | App con decisión persistida |
 | 6 | `notebooks/04_validacion_writeback.py` | 5 min | Ciclo cerrado validado |
+| 7 | `dashboard/README.md` | 20–25 min | Dashboard AI/BI generado con Genie |
 
 > Los tiempos de las notebooks se mantienen cortos mediante código preparado.
 > Los participantes ejecutan y validan cada etapa; el foco principal sigue

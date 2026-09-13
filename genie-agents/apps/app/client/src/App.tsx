@@ -3,14 +3,7 @@ import {
   ResourceStatusIndicator,
   ResourceStatusProvider,
 } from '@databricks/appkit-ui/react';
-import {
-  Bell,
-  Boxes,
-  DatabaseZap,
-  LayoutDashboard,
-  Menu,
-  Settings2,
-} from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import { ActionDrawer } from './components/ActionDrawer';
 import { ActionRail } from './components/ActionRail';
 import { DecisionQueue } from './components/DecisionQueue';
@@ -32,18 +25,13 @@ function WorkshopApp() {
           <span>PR</span>
         </div>
         <nav>
-          <button className="nav-button nav-button--active" aria-label="Inicio">
+          <span
+            className="nav-button nav-button--active"
+            aria-label="Centro de decisiones"
+            aria-current="page"
+          >
             <LayoutDashboard size={20} />
-          </button>
-          <button className="nav-button" aria-label="Inventario">
-            <Boxes size={20} />
-          </button>
-          <button className="nav-button" aria-label="Datos">
-            <DatabaseZap size={20} />
-          </button>
-          <button className="nav-button" aria-label="Configuración">
-            <Settings2 size={20} />
-          </button>
+          </span>
         </nav>
         <div className="sidebar__footer">
           <span>AR</span>
@@ -53,9 +41,6 @@ function WorkshopApp() {
       <div className="workspace">
         <header className="topbar">
           <div className="topbar__title">
-            <button className="mobile-menu" aria-label="Abrir menú">
-              <Menu size={20} />
-            </button>
             <div>
               <p>Pulso Retail Argentina</p>
               <span>Centro de decisiones de inventario</span>
@@ -66,9 +51,6 @@ function WorkshopApp() {
             <span className="quality-badge">
               <i /> Datos certificados
             </span>
-            <button className="icon-button" aria-label="Notificaciones">
-              <Bell size={18} />
-            </button>
             <div className="user-chip">
               <span>{data.identity.slice(0, 2).toUpperCase()}</span>
               <div>

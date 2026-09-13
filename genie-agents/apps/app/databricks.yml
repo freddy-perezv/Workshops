@@ -11,11 +11,13 @@ variables:
     default: Pulso Retail Argentina
   catalog_name:
     description: Catálogo creado en las notebooks
+  app_name:
+    description: Nombre de la App (2-30 caracteres, único en el workspace)
 
 resources:
   apps:
     pulso_retail:
-      name: pulso-retail-${workspace.current_user.short_name}
+      name: ${var.app_name}
       description: Centro de decisiones de inventario con Genie y write-back
       source_code_path: ./
       user_api_scopes:
@@ -56,8 +58,9 @@ targets:
     default: true
     mode: development
     workspace:
-      host: https://adb-7405608876622599.19.azuredatabricks.ne
+      host: https://REPLACE_WITH_WORKSPACE_HOST
     variables:
-      sql_warehouse_id: 5060ebc0c46f84b1
-      genie_space_id: 01f1aaf0b02f1c90af783c17b0501448
-      catalog_name: workshop_argentina_equipo_01
+      sql_warehouse_id: REPLACE_WITH_WAREHOUSE_ID
+      genie_space_id: REPLACE_WITH_GENIE_SPACE_ID
+      catalog_name: REPLACE_WITH_CATALOG_NAME
+      app_name: pulso-eq01
