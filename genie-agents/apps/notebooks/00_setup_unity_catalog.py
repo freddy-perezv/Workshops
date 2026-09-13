@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # 00 · Preparar Unity Catalog
 # MAGIC
@@ -71,7 +75,24 @@ print("Zona horaria de negocio: America/Argentina/Buenos_Aires")
 # COMMAND ----------
 
 if CREATE_CATALOG:
-    spark.sql(f"CREATE CATALOG IF NOT EXISTS `{CATALOG}`")
+    from databricks.sdk import WorkspaceClient
+    _w = WorkspaceClient()
+    # Discover the first non-internal external location
+    _ext_locs = [
+        loc for loc in _w.external_locations.list()
+        if not loc.name.startswith("__")
+    ]
+    if not _ext_locs:
+        raise RuntimeError(
+            "No se encontró ninguna external location disponible. "
+            "Pide a un administrador crear una, o crea el catálogo "
+            "manualmente desde la UI."
+        )
+    _managed_url = f"{_ext_locs[0].url.rstrip('/')}/{CATALOG}"
+    print(f"External location: {_ext_locs[0].name} → {_managed_url}")
+    spark.sql(
+        f"CREATE CATALOG IF NOT EXISTS `{CATALOG}` MANAGED LOCATION '{_managed_url}'"
+    )
     spark.sql(
         f"""
         COMMENT ON CATALOG `{CATALOG}` IS

@@ -56,8 +56,8 @@ targets:
     default: true
     mode: development
     workspace:
-      host: https://REPLACE_WITH_WORKSPACE_HOST
+      host: https://adb-7405608876622599.19.azuredatabricks.ne
     variables:
-      sql_warehouse_id: REPLACE_WITH_WAREHOUSE_ID
-      genie_space_id: REPLACE_WITH_GENIE_SPACE_ID
+      sql_warehouse_id: 5060ebc0c46f84b1
+      genie_space_id: 01f1aaf0b02f1c90af783c17b0501448
       catalog_name: workshop_argentina_equipo_01

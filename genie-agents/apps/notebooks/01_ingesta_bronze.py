@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # 01 · Ingesta a escala y capa Bronze
 # MAGIC
@@ -63,7 +67,7 @@ stores = (
     .select(
         F.col("id").cast("int").alias("store_id"),
         F.format_string("Sucursal %03d", F.col("id")).alias("store_name"),
-        F.element_at(province_array, ((F.col("id") - 1) % len(PROVINCES)) + 1).alias(
+        F.element_at(province_array, (((F.col("id") - 1) % len(PROVINCES)) + 1).cast("int")).alias(
             "province"
         ),
         F.when((F.col("id") % 4) == 0, "Hipermercado")
@@ -106,7 +110,7 @@ products = (
         F.col("id").cast("int").alias("product_id"),
         F.format_string("SKU-%05d", F.col("id")).alias("sku"),
         F.format_string("Producto %03d", F.col("id")).alias("product_name"),
-        F.element_at(category_array, ((F.col("id") - 1) % len(CATEGORIES)) + 1).alias(
+        F.element_at(category_array, (((F.col("id") - 1) % len(CATEGORIES)) + 1).cast("int")).alias(
             "category"
         ),
         F.round(F.lit(650.0) + (F.col("id") % 70) * 125.75, 2)
@@ -189,7 +193,7 @@ sales_events = base_events.select(
     .alias("channel"),
     F.when((F.col("id") % 613) == 0, F.lit(None).cast("string"))
     .otherwise(
-        F.element_at(province_array, (F.col("id") % len(PROVINCES)) + 1)
+        F.element_at(province_array, ((F.col("id") % len(PROVINCES)) + 1).cast("int"))
     )
     .alias("reported_province"),
 )
@@ -245,7 +249,10 @@ inventory = (
 
 # COMMAND ----------
 
-parallelism = max(8, min(128, spark.sparkContext.defaultParallelism * 2))
+try:
+    parallelism = max(8, min(128, int(spark.conf.get('spark.default.parallelism')) * 2))
+except Exception:
+    parallelism = 8
 
 (
     stores.coalesce(1)
@@ -298,7 +305,7 @@ for name, frame in {
     "sales_events": raw_sales,
 }.items():
     (
-        frame.withColumn("source_file", F.input_file_name())
+        frame.withColumn("source_file", F.col("_metadata.file_path"))
         .withColumn("ingested_at", F.current_timestamp())
         .write.mode("overwrite")
         .option("overwriteSchema", "true")
