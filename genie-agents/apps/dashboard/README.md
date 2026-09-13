@@ -112,7 +112,20 @@ ESTILO Y UX/UI (busca impacto "wow", pero legible y ejecutivo)
 
 REGLAS
 - No ejecutes ni sugieras escrituras: el dashboard es de solo lectura.
-- Usa las medidas certificadas de la metric view; no confundas margen con ingreso.
+- No elimines ningún dataset, tabla ni metric view. Si un widget falla,
+  corrige su consulta; nunca borres el dataset que lo alimenta.
+- retail_performance_metrics es una METRIC VIEW: consulta sus medidas con
+  MEASURE(net_revenue), MEASURE(gross_margin), MEASURE(units_sold). NUNCA uses
+  SUM(), AVG() ni COUNT() directamente sobre esas columnas. Para cortes por
+  dimensión (province, category, channel, event_date), agrega la dimensión al
+  SELECT y usa GROUP BY ALL. Ejemplo:
+    SELECT province, MEASURE(net_revenue) AS net_revenue
+    FROM <catalog>.gold.retail_performance_metrics
+    WHERE event_date >= date_sub(current_date(), 29)
+    GROUP BY ALL
+    ORDER BY net_revenue DESC
+- Las tablas decision_queue, current_actions, data_quality_summary y sales_daily
+  son tablas/vistas normales: ahí sí se usan SUM/COUNT/AVG con GROUP BY.
 - Si un dato no existe, indícalo; no rellenes con valores ficticios.
 
 Entrega el dashboard con los widgets ya dispuestos según el layout, títulos en
@@ -129,6 +142,20 @@ seguimiento que un ejecutivo haría sobre este tablero.
 - “Usa ámbar para HIGH y rojo para CRITICAL en la tabla.”
 - “Formatea todos los montos como ARS compacto (MM/mil).”
 - “Agrega un filtro por canal y por rango de fechas.”
+
+### Si un KPI muestra “Unable to render visualization”
+
+Casi siempre es la **metric view** consultada con `SUM()` en vez de
+`MEASURE()`. No borres el dataset (rompe otros widgets). Corrígelo:
+
+> Edita el dataset que falla usando `MEASURE(net_revenue)`,
+> `MEASURE(gross_margin)`, `MEASURE(units_sold)` sobre
+> `<catalog>.gold.retail_performance_metrics`, con `GROUP BY ALL` si hay
+> dimensión. No elimines ningún dataset ni tabla.
+
+Borrar un *dataset* del dashboard **no** afecta tus tablas ni la metric view en
+Unity Catalog, pero sí deja sin datos a los widgets que dependían de él. Por eso
+la mejor salida es corregir la consulta, no borrar.
 
 ## Criterio de éxito
 
