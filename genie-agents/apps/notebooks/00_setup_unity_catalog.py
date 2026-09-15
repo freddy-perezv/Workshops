@@ -18,6 +18,8 @@
 # MAGIC También se crea un Unity Catalog Volume para simular una zona de
 # MAGIC aterrizaje. El catálogo permite aplicar permisos y trazabilidad desde
 # MAGIC el origen hasta la decisión.
+# MAGIC
+# MAGIC by: Freddy Perez
 
 # COMMAND ----------
 
