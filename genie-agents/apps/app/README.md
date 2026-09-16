@@ -26,180 +26,169 @@ La experiencia combina:
 
 ## Tres modos de ejecución
 
-| Modo | Comando | Conexión a Databricks | Uso |
+| Modo | Acción / comando | Conexión a Databricks | Uso |
 | --- | --- | --- | --- |
-| Mock local | `npm run dev:mock` | No | Opcional — revisar UI sin backend real |
+| **UI de Apps + Git folder (workshop)** | **Workspace → Apps → Create → Deploy** | **Sí (navegador)** | **Camino del lab** |
+| Asset Bundle (CLI) | `bundle deploy` + `bundle run` | Sí (CLI en tu laptop) | Alternativa si ya tienes CLI |
+| Mock local | `npm run dev:mock` | No | Opcional — revisar UI sin backend |
 | Desarrollo conectado | `npm run dev` | Sí (`.env`) | Solo desarrollo local |
-| **Asset Bundle (workshop)** | **`bundle deploy` + `bundle run`** | **Sí (CLI en tu laptop)** | **Camino del lab** |
 
-> **En el workshop se usa el Asset Bundle.** `.env` no despliega. El login del
-> navegador (workspace) no autentica el CLI. Los comandos se corren en la
-> **terminal de tu máquina**, no en una notebook ni en Genie.
-
-El CLI local **no ve** la carpeta Git del workspace de Databricks. O usas el
-clone en tu laptop, o en la UI de Apps apuntas a la carpeta `app/` del
-workspace. No hay un `cd` a `/Workspace/...` desde Terminal.app.
+> **En el workshop se usa la UI de Apps.** No necesitas Databricks CLI, terminal
+> de laptop ni editar `databricks.yml`. El login del navegador (workspace) es
+> suficiente. El código debe estar en el workspace (Git folder / Repos).
 
 ---
 
-## Despliegue con Asset Bundle (camino del workshop)
+## Despliegue por UI de Apps (camino del workshop)
 
-Prerrequisito: [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html)
-instalado. Comprueba:
+No necesitas Databricks CLI, terminal de laptop ni editar `databricks.yml`.
+El login del navegador (workspace) es suficiente.
 
-```bash
-databricks -v
-```
+### Paso 1 — Prerrequisitos
 
-Todos los comandos se ejecutan **en la terminal de tu laptop**, desde la
-carpeta `app/` (donde está `databricks.yml`). Ejemplo desde la raíz del repo:
+Antes de crear la App, verifica que todo esté en su sitio:
 
-```bash
-cd genie-agents/apps/app
-pwd
-ls databricks.yml
-```
+- Notebooks 00–03 ejecutadas con **tu catálogo**.
+- Tablas existentes:
+  - `<catalogo>.gold.decision_queue`
+  - `<catalogo>.gold.retail_performance_metrics`
+  - `<catalogo>.ops.action_tasks`
+- Lab 1 completado: Genie Space configurado con esas tablas e instrucciones
+  (no un space vacío).
+- SQL warehouse encendido, con permiso `CAN_USE`.
+- Código del repositorio disponible en el workspace (Git folder / Repos).
 
-En esta máquina la ruta completa es:
+Anota estos datos; los necesitarás al crear la App:
 
-`/Users/<tu-usuario>/.../Workshops/Repository/genie-agents/apps/app`
-
-Si aparece `unable to locate bundle root: databricks.yml not found`, no sigas:
-estás en otra carpeta (raíz del repo, `apps/` o el Git folder de Databricks).
-
-**Perfil del CLI:** si `auth login` o `bundle validate` pide `--profile`, o
-aparece `Multiple profiles match host`, agrega `--profile <nombre>` a **todos**
-los comandos de abajo (`validate`, `deploy`, `run`). El nombre sale en el
-error (por ejemplo `ey-chile-demo`). No uses `databricks auth env` (deprecado).
-
-### Paso 1 — Autenticar el CLI
-
-El host es la URL de tu workspace **tal cual en la barra del navegador**,
-incluido `.net` si aplica. No asumas Azure: copia la URL real, sin `/genie/`
-ni otras rutas.
-
-```bash
-databricks auth login --host https://<tu-workspace>
-```
-
-Si pregunta **Databricks profile name**, pulsa **Enter** (deja el default) o
-escribe un nombre corto (`pulso`). No escribas ahí otros comandos: si pegas
-`databricks current-user me` como nombre de perfil, vas a crear un perfil
-basura y luego `Multiple profiles match host`.
-
-Verifica con:
-
-```bash
-databricks current-user me
-```
-
-(`databricks auth env` está deprecado; no lo uses.)
-
-Si `bundle validate` dice **Multiple profiles match host**, elige uno:
-
-```bash
-databricks bundle validate --profile <nombre-del-perfil>
-```
-
-y usa el mismo `--profile` en `deploy` y `run`.
-
-### Paso 2 — Completar `databricks.yml`
-
-Edita **solo el bloque de abajo**, `targets:` → `dev:`. No toques los
-`${var....}` de la sección `resources`.
-
-| Variable | Dónde encontrarla |
+| Dato | Dónde encontrarlo |
 | --- | --- |
-| `workspace.host` | URL del workspace (completa, sin typo: `.net` no `.ne`) |
-| `sql_warehouse_id` | SQL Warehouses → el warehouse → ID en la URL (`/sql/warehouses/<id>`), no el nombre |
-| `genie_space_id` | Genie **con instrucciones y tablas del lab** → ID en `/genie/rooms/<id>` |
-| `catalog_name` | Catálogo de las notebooks 00–04. Aunque no diga `REPLACE`, cámbialo si no es el tuyo |
-| `app_name` | Nombre de la App: **2–30 caracteres**, minúsculas y guiones, **único** en el workspace |
+| Nombre de catálogo | El catálogo que usaste en las notebooks 00–03 |
+| ID del warehouse | SQL Warehouses → tu warehouse → ID en la URL `/sql/warehouses/<id>` (no el nombre) |
+| ID del Genie Space | Genie → el space del Lab 1 → ID en la URL `/genie/rooms/<id>` |
+| Nombre de la App | Un nombre corto que cumpla las reglas del paso 2 |
 
-El nombre **no** puede ser `pulso-retail-` + tu correo: Databricks rechaza más
-de 30 caracteres (`pulso-retail-freddyalan_perezvelazquez` falla). Usa algo
-corto: `pulso-eq01`, `pulso-ana`, `pulso-retail-fpv`.
+### Paso 2 — Nombre de la App
 
-El Genie Space debe ser el que tiene contexto del workshop, no uno vacío. El
-`genie_space_name` de más arriba puede quedar; manda el **ID**.
+- **2–30 caracteres**, solo minúsculas y guiones.
+- **Único** en el workspace.
+- No uses tu correo (supera 30 caracteres). Ejemplos: `pulso-ana`,
+  `pulso-eq01`, `pulso-retail-fpv`.
 
-No subas `.env` ni tokens a git. Cada participante rellena sus IDs **en su
-copia local** de `databricks.yml`; en el repo deben quedar los
-`REPLACE_WITH_...`, no host ni warehouse de un workspace real.
+### Paso 3 — Crear la App
 
-### Paso 3 — Validar
+1. En el workspace: **Apps** → **Create App**.
+2. Selecciona **Custom** / from code.
+3. Asigna el nombre elegido en el paso 2.
 
-Siempre desde `app/`:
+No cierres la pantalla: a continuación vas a agregar los recursos.
 
-```bash
-databricks bundle validate
-# si hace falta: databricks bundle validate --profile <nombre>
-```
+### Paso 4 — Resources
 
-Corrige YAML, host o referencias antes de continuar. Si el host está
-truncado (`.ne` en lugar de `.net`) o faltan `REPLACE_WITH_...`, el CLI falla
-aquí.
+Aquí se conecta la App con el warehouse, Genie y las tablas. Esto **sustituye**
+editar `databricks.yml` (que no se toca en este camino).
 
-### Paso 4 — Crear la App y los recursos
+> **Importante:** el **nombre** (alias) de cada recurso en la UI **debe**
+> coincidir letra por letra con el `valueFrom` declarado en `app.yaml`. Si la
+> UI propone nombres genéricos (`table`, `table-2`, …), **renómbralos**. Si no
+> coinciden, la App abre pero muestra *“No se pudo leer la configuración”*.
 
-```bash
-databricks bundle deploy
-# si hace falta: databricks bundle deploy --profile <nombre>
-```
+| Nombre del recurso (alias) | Tipo | Qué seleccionar | Permiso |
+| --- | --- | --- | --- |
+| `sql-warehouse` | SQL warehouse | El warehouse del lab | `CAN_USE` |
+| `genie-space` | Genie Space | El space del Lab 1 | `CAN_RUN` |
+| `queue-table` | Tabla UC | `<catalogo>.gold.decision_queue` | `SELECT` |
+| `metric-view` | Tabla UC | `<catalogo>.gold.retail_performance_metrics` | `SELECT` |
+| `actions-table-read` | Tabla UC | `<catalogo>.ops.action_tasks` | `SELECT` |
+| `actions-table-write` | Tabla UC | La **misma** `<catalogo>.ops.action_tasks` | `MODIFY` |
 
-Esto crea (o actualiza) la App, sube archivos al workspace
-(`.bundle/.../files`) y asigna warehouse, Genie y tablas.
+Las tablas Gold/ops se llaman igual para todos los equipos; lo único que cambia
+es el catálogo.
 
-**Todavía no está lista para usarse.** En Apps vas a ver el nombre de
-`app_name`, recursos a la derecha, compute a veces **Active**, y a la vez:
+Si la UI muestra **User authorization / scopes**, activa **Genie**
+(`dashboards.genie`). Sin esto el chat embebido no autentica.
 
-- App status **Unavailable**
-- **No source code**
-- **No active deployment**
+### Paso 5 — Deploy
 
-Eso es normal. `deploy` armó el cascarón; falta publicar el código.
+1. Botón **Deploy**.
+2. La UI pide un path de workspace. Elige la carpeta que contiene `app.yaml`,
+   por ejemplo:
 
-### Paso 5 — Publicar el código (el paso que faltaba en el runbook)
+   `/Workspace/Users/<tu-usuario>/Workshops/genie-agents/apps/app`
 
-Sigue en `app/`:
+   **No** elijas la raíz del repo (`genie-agents/`) ni `apps/`. La carpeta
+   correcta es `app/`.
 
-```bash
-databricks bundle run pulso_retail
-# si hace falta: databricks bundle run pulso_retail --profile <nombre>
-```
+3. Espera a que el status cambie a **Running** (tarda varios minutos en el
+   primer arranque: `npm install` + build). **Compute Active no alcanza**;
+   la App necesita estar en Running.
 
-`pulso_retail` es la clave del recurso en el YAML, **no** el `app_name`.
+### Paso 6 — Comprobar
 
-Si cambias código de la App (`App.tsx`, `app.yaml`, etc.) después de un
-deploy, vuelve a correr **Paso 4 y Paso 5**. Un `deploy` solo no actualiza
-la experiencia que ya está Running.
-
-El primer arranque tarda varios minutos (`npm install` / build). Espera a
-**Running**, no solo compute Active.
-
-**Alternativa en la UI** (si no usas `bundle run`): en la App, botón
-**Deploy**. Esa pantalla **no ve tu Mac**. Elige una carpeta del
-**workspace** que contenga `app.yaml`, por ejemplo:
-
-`/Workspace/Users/<tu-usuario>/Workshops/genie-agents/apps/app`
-
-No elijas la raíz del repo. GitHub solo sincroniza; Apps quiere un path de
-Workspace.
-
-### Paso 6 — Abrir y comprobar
-
-Workspace → **Apps** → el valor de `app_name` (en `mode: development` puede
-aparecer con prefijo `[dev ...]`). Abre la URL cuando el status sea Running.
-
-Deberías ver:
+Abre la URL de la App cuando el status sea **Running**. Deberías ver:
 
 - **KPIs** — ingreso, margen, unidades, ingreso en riesgo.
 - **Cola de alertas** — filtrada por prioridad, con evidencia por alerta.
 - **Genie** — panel de conversación embebido (multi-turn).
-- **Write-back** — acciones que insertan en `<catalog>.ops.action_tasks`.
-- **Seguimiento** — tareas que se pueden completar.
+- **Write-back** — selecciona una alerta, elige acción, asigna responsable.
+  La tarea debe aparecer en seguimiento.
 
-Si la App abre pero no hay datos, ve a troubleshooting.
+Si Genie responde pero los KPIs están vacíos: los alias de los recursos no
+coinciden con los `valueFrom` de `app.yaml` (ver tabla del paso 4).
+
+### Qué NO hacer en este camino
+
+- **No** instalar Databricks CLI ni correr `bundle deploy` / `bundle run`.
+- **No** editar `databricks.yml` ni los `REPLACE_WITH_...`.
+- **No** crear `.env`.
+- **No** cambiar los `valueFrom` de `app.yaml`.
+- **No** hacer Deploy sobre la raíz del repo (debe ser la carpeta `app/`).
+
+---
+
+## Alternativa: CLI / Asset Bundle
+
+> Solo si ya tienes Databricks CLI en tu laptop y prefieres línea de comandos.
+> Si seguiste el camino por UI de Apps, salta esta sección.
+
+Prerrequisito: [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html)
+instalado (`databricks -v`). Todos los comandos se ejecutan **en la terminal
+de tu laptop**, desde la carpeta `app/` (donde está `databricks.yml`).
+
+**1. Autenticar**
+
+```bash
+databricks auth login --host https://<tu-workspace>
+databricks current-user me
+```
+
+Si aparece **Multiple profiles match host**, agrega `--profile <nombre>` a
+todos los comandos siguientes.
+
+**2. Editar `targets.dev` en `databricks.yml`**
+
+Completa solo el bloque `targets:` → `dev:`. No toques los `${var....}` de
+`resources`.
+
+| Variable | Dónde encontrarla |
+| --- | --- |
+| `workspace.host` | URL del workspace (completa, incluido `.net`) |
+| `sql_warehouse_id` | ID del warehouse (URL `/sql/warehouses/<id>`) |
+| `genie_space_id` | ID del Genie Space (URL `/genie/rooms/<id>`) |
+| `catalog_name` | Catálogo de las notebooks 00–04 |
+| `app_name` | Nombre corto (2–30 caracteres, minúsculas y guiones) |
+
+**3. Validar, deployar, publicar**
+
+```bash
+databricks bundle validate
+databricks bundle deploy
+databricks bundle run pulso_retail
+```
+
+`pulso_retail` es la clave del recurso en el YAML, **no** el `app_name`.
+Si cambias código después del deploy, repite `bundle deploy` + `bundle run`.
+El primer arranque tarda varios minutos. Si aparece `--profile`, úsalo en los
+tres comandos.
 
 ### Cómo se conectan `app.yaml` y `databricks.yml`
 
@@ -218,18 +207,13 @@ etc.). Lo único que cambia por equipo es `catalog_name` en `targets.dev`.
 | `GOLD_METRIC_VIEW` | `metric-view` | `${catalog}.gold.retail_performance_metrics` | Nombre UC de 3 partes |
 | `OPS_ACTIONS_TABLE` | `actions-table-read` | `${catalog}.ops.action_tasks` | Nombre UC de 3 partes |
 
-No uses aliases de la UI (`table`, `table-2`, `table-3`): el bundle no los
-crea y la App muestra *No se pudo leer la configuración* aunque Genie esté
-en línea. No edites esos `valueFrom` en el workshop; solo `catalog_name` y
-los IDs del bloque `targets`.
+No uses aliases genéricos de la UI (`table`, `table-2`, `table-3`): ni el
+bundle ni la App los reconocen, y la App muestra *No se pudo leer la
+configuración*.
 
 ---
 
 ## Si algo falla
-
-Los permisos están en `databricks.yml` →
-`resources.apps.pulso_retail.resources` (cada ítem trae `permission:`). No
-busques `resources.apps.*.permissions` ni `*.config`: en este repo no existen.
 
 | Recurso | Permiso requerido |
 | --- | --- |
@@ -239,25 +223,33 @@ busques `resources.apps.*.permissions` ni `*.config`: en este repo no existen.
 | `gold.retail_performance_metrics` | `SELECT` |
 | `ops.action_tasks` | `SELECT` + `MODIFY` |
 
+Si usaste la **UI de Apps**, los permisos se asignan en los recursos del
+paso 4. Si usaste **CLI / Asset Bundle**, están en `databricks.yml` →
+`resources.apps.pulso_retail.resources`.
+
 Problemas frecuentes:
 
-- **`databricks.yml not found`** → el comando no se corrió desde `app/`.
-- **`cannot configure default credentials`** → falta `auth login` contra el
-  **mismo** host (completo). El Chrome logueado no alcanza.
-- **`Multiple profiles match host`** → agrega `--profile <nombre>`.
-- **App name must be between 2 and 30 characters** → acorta `app_name`.
-- **Unavailable / No source code** → corriste `bundle deploy` pero no
-  `bundle run` (ni Deploy en la UI sobre la carpeta `app/`).
+- **App Unavailable / No source code** → no se hizo Deploy. En la UI: botón
+  Deploy sobre la carpeta `app/` con `app.yaml` y recursos bien aliasados.
+  En CLI: falta `bundle run pulso_retail` después de `bundle deploy`.
 - **No se pudo leer la configuración** (Genie en línea, KPIs vacíos) →
-  `app.yaml` `valueFrom` no coincide con los `name` del bundle. Tienen que
-  ser `queue-table`, `metric-view`, `actions-table-read`, no `table` /
-  `table-2`. Después: `bundle deploy` + `bundle run` otra vez.
-- **Genie no aparece embebido** → `genie_space_id` correcto y scope
-  `dashboards.genie`.
-- **Warehouse no responde** → warehouse encendido; el valor es el **ID**, no
-  el nombre.
-- **Host metadata / URL rara** → revisa que `workspace.host` no esté
-  truncado (`.ne` en lugar de `.net`).
+  los nombres (alias) de los recursos no coinciden con los `valueFrom` de
+  `app.yaml`. Deben ser `sql-warehouse`, `genie-space`, `queue-table`,
+  `metric-view`, `actions-table-read`, `actions-table-write` — no `table` /
+  `table-2`. Corrige los alias y vuelve a hacer Deploy.
+- **Genie no aparece embebido** → verifica que el ID del Genie Space sea
+  correcto y que el scope `dashboards.genie` esté activo.
+- **Warehouse no responde** → verifica que esté encendido y que el recurso
+  use el **ID** (no el nombre).
+- **App name must be between 2 and 30 characters** → acorta el nombre.
+- **(Solo CLI) `databricks.yml not found`** → el comando no se corrió desde
+  `app/`.
+- **(Solo CLI) `cannot configure default credentials`** → falta
+  `auth login` contra el mismo host.
+- **(Solo CLI) `Multiple profiles match host`** → agrega
+  `--profile <nombre>`.
+- **Host metadata / URL rara** → revisa que el host no esté truncado
+  (`.ne` en lugar de `.net`).
 
 Para más detalle: [`../docs/TROUBLESHOOTING.md`](../docs/TROUBLESHOOTING.md).
 
