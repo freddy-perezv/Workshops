@@ -76,36 +76,61 @@ print("Zona horaria de negocio: America/Argentina/Buenos_Aires")
 
 # COMMAND ----------
 
-if CREATE_CATALOG:
-    from databricks.sdk import WorkspaceClient
-    _w = WorkspaceClient()
-    # Discover the first non-internal external location
-    _ext_locs = [
-        loc for loc in _w.external_locations.list()
-        if not loc.name.startswith("__")
-    ]
-    if not _ext_locs:
-        raise RuntimeError(
-            "No se encontró ninguna external location disponible. "
-            "Pide a un administrador crear una, o crea el catálogo "
-            "manualmente desde la UI."
-        )
-    _managed_url = f"{_ext_locs[0].url.rstrip('/')}/{CATALOG}"
-    print(f"External location: {_ext_locs[0].name} → {_managed_url}")
-    spark.sql(
-        f"CREATE CATALOG IF NOT EXISTS `{CATALOG}` MANAGED LOCATION '{_managed_url}'"
-    )
-    spark.sql(
-        f"""
-        COMMENT ON CATALOG `{CATALOG}` IS
-        'Workshop Argentina: datos gobernados, Genie Agent y Databricks App'
-        """
-    )
+import time
+from databricks.sdk import WorkspaceClient
 
+_w = WorkspaceClient()
+
+# --- Paso 1: Verificar si el catálogo existe ---
+_existing = [c.name for c in _w.catalogs.list() if c.name == CATALOG]
+
+if not _existing:
+    print("=" * 60)
+    print(f"⚠️  El catálogo '{CATALOG}' NO existe.")
+    print("   Este workspace usa Default Storage y requiere")
+    print("   creación manual desde la UI.")
+    print()
+    print("   ➡️  Pasos:")
+    print("   1. En la barra lateral, ve a  Catalog")
+    print("   2. Haz clic en  ＋ Add  >  Add a catalog")
+    print(f"   3. Nombre del catálogo:  {CATALOG}")
+    print("   4. En Type selecciona  Standard")
+    print("   5. En Storage Location selecciona  Default Storage")
+    print("   6. Haz clic en  Create")
+    print("=" * 60)
+    print()
+    print("⏳ Esperando a que el catálogo sea creado...")
+    print("   (esta celda revisa cada 15 segundos)")
+    print()
+
+    # Esperar hasta que el catálogo aparezca
+    while True:
+        _check = [c.name for c in _w.catalogs.list() if c.name == CATALOG]
+        if _check:
+            print(f"\n✅ ¡Catálogo '{CATALOG}' detectado!")
+            break
+        print("   ... aún no existe, reintentando en 15s")
+        time.sleep(15)
+else:
+    print(f"✅ Catálogo '{CATALOG}' ya existe.")
+
+# --- Paso 2: Agregar comentario al catálogo ---
+try:
+    spark.sql(
+        f"""COMMENT ON CATALOG `{CATALOG}` IS
+        'Workshop Argentina: datos gobernados, Genie Agent y Databricks App'"""
+    )
+except Exception:
+    pass  # Ignorar si no tiene permisos para comentar
+
+# --- Paso 3: Crear schemas ---
 spark.sql(f"USE CATALOG `{CATALOG}`")
 
 for schema in ("bronze", "silver", "gold", "ops"):
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{CATALOG}`.`{schema}`")
+    print(f"  Schema '{schema}' ✔")
+
+print(f"\n✅ Catálogo '{CATALOG}' y schemas configurados correctamente.")
 
 # COMMAND ----------
 
