@@ -42,14 +42,15 @@ Cada participante:
 | 1 | `notebooks/01_ingesta_bronze.py` | 10–15 min | Datos raw y Bronze |
 | 2 | `notebooks/02_calidad_cuarentena_silver.py` | 10 min | Silver y cuarentena |
 | 3 | `notebooks/03_gold_semantic_layer.py` | 10 min | Gold, cola y metric view |
-| 4 | `genie/README.md` | 35–40 min | Genie Space evaluado |
-| 5 | `app/README.md` | 45–50 min | App con decisión persistida |
+| 4 | `genie/README.md` | 35 min | Genie Space evaluado |
+| 5 | `app/README.md` | 45 min | App con decisión persistida |
 | 6 | `notebooks/04_validacion_writeback.py` | 5 min | Ciclo cerrado validado |
-| 7 | `dashboard/README.md` | 20–25 min | Dashboard AI/BI generado con Genie |
+| 7 | `dashboard/README.md` | 20 min | Dashboard AI/BI generado con Genie |
 
 > Los tiempos de las notebooks se mantienen cortos mediante código preparado.
-> Los participantes ejecutan y validan cada etapa; el foco principal sigue
-> siendo Genie y Databricks Apps.
+> Los participantes ejecutan y validan cada etapa. La agenda completa de 180
+> minutos, incluidas bienvenida, pausa, evaluación y readout, está en
+> `docs/INSTRUCTOR_GUIDE.md`.
 
 ## Escala de datos
 

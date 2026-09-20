@@ -22,18 +22,140 @@ La frase de apertura recomendada es:
 > Hoy no construiremos un dashboard con chat. Cerraremos el ciclo entre dato,
 > análisis, decisión y ejecución.
 
+## Apertura de la presentación (4–5 minutos)
+
+Estas cinco diapositivas deben mostrarse antes de comenzar el workshop. Su
+objetivo es presentar al instructor, dar contexto de negocio y explicar el
+recorrido que seguirá el grupo antes de entrar en Databricks.
+
+### Diapositiva 1 · Bienvenida
+
+**Contenido en pantalla**
+
+- **De datos a decisiones con Genie Agents + Databricks Apps**
+- Workshop hands-on
+- Pulso Retail Argentina
+
+**Guion**
+
+“Bienvenidos. Hoy vamos a recorrer un caso de negocio de extremo a extremo:
+partiremos de datos operativos con problemas de calidad y terminaremos con una
+decisión registrada, auditable y disponible para análisis.”
+
+### Diapositiva 2 · Quién soy (20 segundos)
+
+**Contenido en pantalla**
+
+- **[Nombre y apellido]**
+- [Posición o cargo] · [Rol en este workshop]
+- [Empresa]
+- **Algo que pocos saben de mí:** [dato atípico, personal o disruptivo]
+
+**Guion de 20 segundos**
+
+“Soy **[nombre]**, trabajo como **[posición]** en **[empresa]** y hoy mi rol
+será acompañarlos como **[rol en el workshop]**. Para romper el hielo, algo que
+muy pocos saben de mí es **[dato breve]**. Ahora sí, veamos el problema que
+vamos a resolver juntos.”
+
+> Completar los campos antes de presentar. Elegir un dato breve y apropiado
+> para la audiencia: una afición inesperada, un proyecto personal, una
+> experiencia poco conocida o una habilidad fuera del trabajo.
+
+### Diapositiva 3 · El problema: vemos el quiebre demasiado tarde
+
+**Contenido en pantalla**
+
+- 120 sucursales y 400 productos.
+- Ventas e inventario distribuidos en distintas fuentes.
+- Datos con duplicados, faltantes y valores inválidos.
+- Alertas tardías y priorización manual.
+- Decisiones que no siempre dejan evidencia auditable.
+
+**Mensaje central**
+
+> El problema no es la falta de datos; es convertir datos imperfectos en una
+> decisión oportuna y confiable.
+
+**Guion**
+
+“Pulso Retail opera 120 sucursales en Argentina. Tiene datos de ventas e
+inventario, pero detecta tarde qué combinación de sucursal y producto está en
+riesgo de quedarse sin stock. Además, los datos no llegan perfectos y el
+equipo debe revisar señales dispersas, decidir qué atender primero y registrar
+lo que hizo. Esto genera pérdida potencial de ventas, trabajo reactivo y poca
+trazabilidad.”
+
+### Diapositiva 4 · Qué buscamos resolver
+
+**Contenido en pantalla**
+
+- Detectar riesgo de quiebre con anticipación.
+- Priorizar por cobertura, lead time e ingreso en riesgo.
+- Permitir preguntas en lenguaje natural con métricas consistentes.
+- Mantener control humano sobre la decisión.
+- Registrar cada acción para consulta y auditoría.
+
+**Criterio de éxito**
+
+> Una persona identifica la alerta prioritaria, entiende por qué importa,
+> toma una decisión y puede demostrar qué ocurrió.
+
+**Guion**
+
+“No buscamos construir solamente un dashboard ni un chatbot. Buscamos reducir
+el tiempo entre una señal operativa y una acción informada. El usuario debe
+poder encontrar la alerta más importante, comprender la evidencia con Genie,
+confirmar una decisión desde una aplicación y dejar un registro que luego
+pueda consultarse y auditarse.”
+
+### Diapositiva 5 · Cómo lo resolveremos
+
+**Contenido en pantalla**
+
+1. **Gobernar:** Unity Catalog define activos, permisos y linaje.
+2. **Confiar:** Bronze, Silver y cuarentena hacen visible la calidad.
+3. **Priorizar:** Gold y la capa semántica traducen datos a riesgo de negocio.
+4. **Comprender:** Genie responde con métricas e instrucciones verificadas.
+5. **Actuar:** Databricks App registra una decisión controlada.
+6. **Comunicar:** AI/BI Dashboard presenta el estado ejecutivo.
+
+**Flujo de cierre**
+
+> Dato → calidad → semántica → pregunta → evidencia → decisión → tarea
+
+**Guion**
+
+“Resolveremos el caso como un ciclo completo. Primero gobernaremos y
+prepararemos los datos; después publicaremos reglas de negocio y métricas
+consistentes. Genie nos ayudará a explorar y explicar la situación, pero no
+tomará la decisión por nosotros. La persona confirmará la acción en una
+Databricks App, la tarea quedará persistida y finalmente mostraremos el
+resultado en una vista ejecutiva. Ese es el recorrido que construiremos hoy.”
+
+**Transición al workshop**
+
+“Con el problema, el objetivo y el recorrido claros, abramos el entorno y
+comencemos por la base: datos gobernados y confiables.”
+
 ## Agenda operativa (180 minutos)
 
 | Tiempo | Bloque | Resultado |
 |---:|---|---|
 | 00:00–00:10 | Bienvenida y criterio de éxito | Caso y entorno alineados |
 | 00:10–00:40 | Notebooks 00–03 | UC, Bronze, Silver, Gold y semántica |
-| 00:40–00:55 | Recorrido end-to-end | Pregunta → evidencia → decisión → tarea |
-| 00:55–01:35 | Lab 1: Genie Agent | Space configurado y evaluado |
-| 01:35–01:45 | Pausa | — |
-| 01:45–02:35 | Lab 2: Databricks App | App conectada y acción persistida |
+| 00:40–01:15 | Lab 1: Genie Agent | Space configurado y evaluado |
+| 01:15–01:25 | Pausa | — |
+| 01:25–02:10 | Lab 2: Databricks App | App conectada y acción persistida |
+| 02:10–02:15 | Notebook 04: validación | Ciclo cerrado confirmado |
+| 02:15–02:35 | Lab 3: AI/BI Dashboard | Vista ejecutiva generada con Genie |
 | 02:35–02:50 | Evaluación y producción | Benchmark, permisos y observabilidad |
 | 02:50–03:00 | Readout | Resultado, backlog y plan de 30 días |
+
+El recorrido end-to-end no es un bloque separado: se demuestra dentro del Lab
+2 con el flujo KPI → alerta → evidencia → decisión → tarea → consulta desde
+Genie. Así se protege el tiempo hands-on y el dashboard cabe dentro de las tres
+horas.
 
 ## Antes de abrir la sesión
 
@@ -294,6 +416,33 @@ integrarse y consultarse.”
 - Historial mediante Change Data Feed.
 - Resumen disponible en `gold.current_actions`.
 - Consulta posterior desde Genie.
+
+---
+
+## Lab 3 · AI/BI Dashboard
+
+Seguir `dashboard/README.md`.
+
+### Qué decir
+
+“La App convierte una señal en una decisión; el dashboard comunica el estado
+ejecutivo. No compiten: ambos usan las mismas fuentes Gold gobernadas.”
+
+### Recorrido de 20 minutos
+
+1. Crear un AI/BI Dashboard y asociar el SQL warehouse.
+2. Reemplazar `<catalog>` en el prompt del laboratorio.
+3. Pegar el prompt en Genie y revisar los widgets propuestos.
+4. Confirmar KPIs de 30 días, moneda ARS, riesgo, calidad y seguimiento.
+5. Corregir la metric view con `MEASURE(...)`, nunca con `SUM(...)`.
+6. Publicar o dejar listo para continuidad.
+
+### Criterio de salida
+
+- Solo fuentes Gold del workshop.
+- Periodo y moneda explícitos.
+- Ningún dataset, tabla o metric view eliminado.
+- Si un widget falla, se corrige su consulta; no se inventan cifras.
 
 ---
 
