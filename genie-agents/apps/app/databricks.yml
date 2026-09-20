@@ -1,5 +1,5 @@
 bundle:
-  name: pulso-retail-argentina
+  name: pulso-retail
 
 variables:
   sql_warehouse_id:
@@ -8,7 +8,7 @@ variables:
     description: Genie Space ID
   genie_space_name:
     description: Genie Space display name
-    default: Pulso Retail Argentina
+    default: Pulso Retail
   catalog_name:
     description: Catálogo creado en las notebooks
   app_name:

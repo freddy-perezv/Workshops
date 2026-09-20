@@ -14,7 +14,7 @@ Tiempo objetivo: **20–25 minutos**.
 Un dashboard AI/BI construido **100% con Genie / lenguaje natural**, que:
 
 - Usa las tablas Gold y la metric view del workshop (nada de datos nuevos).
-- Presenta KPIs, tendencias, ranking por provincia, riesgo y calidad.
+- Presenta KPIs, tendencias, ranking por región, riesgo y calidad.
 - Tiene una jerarquía visual clara, buena paleta y mini-charts.
 - Puede embeberse o enlazarse desde la Databricks App como “vista ejecutiva”.
 
@@ -48,23 +48,23 @@ Reemplaza `<catalog>` por tu catálogo de las notebooks 00–04:
 
 ```text
 Actúa como un diseñador senior de dashboards ejecutivos de BI. Crea un
-dashboard AI/BI completo, en español (Argentina), para un Responsable de
+dashboard AI/BI completo, en español latinoamericano, para un Responsable de
 Operaciones de retail llamado "Pulso Retail · Vista Ejecutiva". El objetivo es
 pasar de la señal de riesgo a la decisión en una sola pantalla, con impacto
 visual inmediato.
 
 CONTEXTO DE NEGOCIO
 El negocio prioriza el riesgo de quiebre de stock por sucursal y producto en
-Argentina, cuida el ingreso en riesgo y da seguimiento a decisiones auditables.
-Toda cifra monetaria es en pesos argentinos (ARS) y debe mostrarse con formato
-de moneda compacto (por ejemplo, ARS 2,4 MM). Los periodos son explícitos:
+una operación regional, cuida el ingreso en riesgo y da seguimiento a decisiones auditables.
+Toda cifra monetaria es en dólares estadounidenses (USD) y debe mostrarse con formato
+de moneda compacto (por ejemplo, USD 2.4M). Los periodos son explícitos:
 usa los últimos 30 días salvo que el widget indique otra cosa.
 
 FUENTES DE DATOS (usa solo estas, no inventes tablas ni columnas)
 - <catalog>.gold.retail_performance_metrics (metric view: MEASURE(net_revenue),
-  MEASURE(gross_margin), MEASURE(units_sold); dimensiones: event_date, province,
+  MEASURE(gross_margin), MEASURE(units_sold); dimensiones: event_date, region,
   channel, category)
-- <catalog>.gold.decision_queue (priority, province, store_name, sku, category,
+- <catalog>.gold.decision_queue (priority, region, store_name, sku, category,
   days_of_cover, lead_time_days, revenue_at_risk, recommended_replenishment_units)
 - <catalog>.gold.current_actions (created_at, decision_type, status, assignee,
   due_at, is_overdue, priority, store_name, sku, recommended_units)
@@ -84,13 +84,13 @@ LAYOUT (de arriba hacia abajo, con jerarquía visual clara)
 2. Fila central de dos columnas:
    - Izquierda: gráfico de líneas de ingreso neto y margen bruto por día
      (últimos 30 días) con área suave y leyenda clara.
-   - Derecha: barras horizontales "Ingreso neto por provincia (Top 10)",
+   - Derecha: barras horizontales "Ingreso neto por región (Top 10)",
      ordenado descendente.
 3. Fila de riesgo:
    - Tabla "Cola de decisiones" con las 10 alertas de mayor revenue_at_risk:
-     prioridad (chip de color), sucursal, provincia, SKU, días de cobertura,
+     prioridad (chip de color), sucursal, región, SKU, días de cobertura,
      lead time e ingreso en riesgo. Resalta CRITICAL.
-   - Mapa o barras "Ingreso en riesgo por provincia" (CRITICAL + HIGH).
+   - Barras "Ingreso en riesgo por región" (CRITICAL + HIGH).
 4. Fila de calidad y seguimiento:
    - Barras "Pass rate por regla de calidad" (rule_description, pass_rate_pct)
      con umbral visual.
@@ -104,11 +104,11 @@ ESTILO Y UX/UI (busca impacto "wow", pero legible y ejecutivo)
 - Jerarquía tipográfica: números de KPI grandes y en negrita; etiquetas
   secundarias en tono atenuado.
 - Espaciado generoso, tarjetas con esquinas redondeadas y separación consistente.
-- Formatos: moneda ARS compacta, porcentajes con 1 decimal, miles con separador
-  es-AR.
+- Formatos: moneda USD compacta, porcentajes con 1 decimal, miles con separador
+  es-419.
 - Usa mini-charts (sparklines) en los KPIs y micro-indicadores de tendencia.
 - Estados vacíos claros ("Sin alertas para este filtro") y sin inventar filas.
-- Incluye filtros globales por provincia, categoría y rango de fechas.
+- Incluye filtros globales por región, categoría y rango de fechas.
 
 REGLAS
 - No ejecutes ni sugieras escrituras: el dashboard es de solo lectura.
@@ -117,9 +117,9 @@ REGLAS
 - retail_performance_metrics es una METRIC VIEW: consulta sus medidas con
   MEASURE(net_revenue), MEASURE(gross_margin), MEASURE(units_sold). NUNCA uses
   SUM(), AVG() ni COUNT() directamente sobre esas columnas. Para cortes por
-  dimensión (province, category, channel, event_date), agrega la dimensión al
+  dimensión (region, category, channel, event_date), agrega la dimensión al
   SELECT y usa GROUP BY ALL. Ejemplo:
-    SELECT province, MEASURE(net_revenue) AS net_revenue
+    SELECT region, MEASURE(net_revenue) AS net_revenue
     FROM <catalog>.gold.retail_performance_metrics
     WHERE event_date >= date_sub(current_date(), 29)
     GROUP BY ALL
@@ -137,10 +137,10 @@ seguimiento que un ejecutivo haría sobre este tablero.
 
 ## Ajustes finos (pídeselos a Genie después)
 
-- “Cambia las barras de provincia a Top 8 y ordena por ingreso en riesgo.”
+- “Cambia las barras de región a Top 8 y ordena por ingreso en riesgo.”
 - “Agrega un sparkline de unidades vendidas al KPI correspondiente.”
 - “Usa ámbar para HIGH y rojo para CRITICAL en la tabla.”
-- “Formatea todos los montos como ARS compacto (MM/mil).”
+- “Formatea todos los montos como USD compacto (M/mil).”
 - “Agrega un filtro por canal y por rango de fechas.”
 
 ### Si un KPI muestra “Unable to render visualization”
@@ -160,7 +160,7 @@ la mejor salida es corregir la consulta, no borrar.
 ## Criterio de éxito
 
 - El tablero usa **solo** las fuentes Gold del workshop.
-- KPIs con periodo explícito (30 días) y moneda ARS.
+- KPIs con periodo explícito (30 días) y moneda USD.
 - Jerarquía visual clara, paleta coherente y al menos un mini-chart.
 - Riesgo (CRITICAL/HIGH) y calidad (pass rate) presentes.
 - Cero cifras inventadas; estados vacíos manejados.

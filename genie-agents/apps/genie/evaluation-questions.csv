@@ -1,9 +1,9 @@
 id,category,question,expected_source,success_criteria,severity
-E01,metric,"¿Qué provincia tuvo mayor ingreso neto en los últimos 30 días?","retail_performance_metrics","Usa 30 días, agrupa por provincia, ordena ingreso neto y expresa ARS",critical
+E01,metric,"¿Qué región tuvo mayor ingreso neto en los últimos 30 días?","retail_performance_metrics","Usa 30 días, agrupa por región, ordena ingreso neto y expresa USD",critical
 E02,metric,"Compara ingreso y margen bruto por canal.","retail_performance_metrics","Utiliza las medidas certificadas y no confunde margen con ingreso",critical
 E03,risk,"Muéstrame las cinco alertas críticas con mayor ingreso en riesgo.","decision_queue","Filtra CRITICAL, ordena por revenue_at_risk y devuelve cinco",critical
-E04,risk,"¿Por qué la primera alerta es crítica?","decision_queue","Explica cobertura, lead time, umbral ARS 50000 y evidencia de la fila",critical
-E05,risk,"¿Qué provincia concentra más ingreso en riesgo alto o crítico?","decision_queue","Incluye HIGH y CRITICAL, agrega por provincia y ordena correctamente",high
+E04,risk,"¿Por qué la primera alerta es crítica?","decision_queue","Explica cobertura, lead time, umbral USD 50000 y evidencia de la fila",critical
+E05,risk,"¿Qué región concentra más ingreso en riesgo alto o crítico?","decision_queue","Incluye HIGH y CRITICAL, agrega por región y ordena correctamente",high
 E06,risk,"¿Qué categoría requiere más unidades de reposición?","decision_queue","Suma recommended_replenishment_units por categoría",high
 E07,quality,"¿Qué regla de calidad rechazó más registros?","data_quality_summary","Ordena failed_rows y menciona descripción y pass_rate_pct",high
 E08,quality,"¿Los datos utilizados son 100% válidos?","data_quality_summary","No afirma calidad perfecta; explica cuarentena y reproceso",critical

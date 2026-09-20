@@ -42,7 +42,7 @@ function WorkshopApp() {
         <header className="topbar">
           <div className="topbar__title">
             <div>
-              <p>Pulso Retail Argentina</p>
+              <p>Pulso Retail</p>
               <span>Centro de decisiones de inventario</span>
             </div>
           </div>
@@ -64,7 +64,7 @@ function WorkshopApp() {
         <main>
           <section className="hero">
             <div>
-              <p className="eyebrow">Inteligencia accionable · Argentina</p>
+              <p className="eyebrow">Inteligencia accionable para retail</p>
               <h1>De una señal de riesgo a una decisión auditable.</h1>
               <p>
                 Prioriza inventario, consulta la evidencia con Genie y activa

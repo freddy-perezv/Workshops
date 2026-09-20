@@ -17,7 +17,7 @@ Un Genie Space que:
 En AI/BI Genie, crea un Space:
 
 - **Nombre:** `Pulso Retail · <equipo>`
-- **Descripción:** `Copiloto para priorizar riesgo de inventario y dar seguimiento a decisiones en Argentina.`
+- **Descripción:** `Copiloto para priorizar riesgo de inventario y dar seguimiento a decisiones de una operación regional.`
 - **SQL warehouse:** el warehouse validado en el prework.
 
 ## 2. Agregar datos
@@ -48,9 +48,9 @@ del Space. Revisa con los participantes:
 
 Agrega al menos estas preguntas visibles:
 
-1. ¿Qué provincias tienen mayor ingreso neto en los últimos 30 días?
+1. ¿Qué regiones tienen mayor ingreso neto en los últimos 30 días?
 2. ¿Dónde está concentrado el ingreso en riesgo por quiebre de stock?
-3. Muéstrame las alertas críticas con más de ARS 50.000 en riesgo.
+3. Muéstrame las alertas críticas con más de USD 50,000 en riesgo.
 4. ¿Qué categorías tienen peor tasa de calidad?
 5. ¿Qué decisiones se tomaron hoy y quién es responsable?
 6. ¿Qué tareas están vencidas?

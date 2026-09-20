@@ -40,8 +40,8 @@ La columna `invalid_store` de la validación debe ser mayor que cero.
 
 ### La cuarentena supera ampliamente lo esperado
 
-Validar que el código de provincia no fue modificado. La provincia reportada
-está diseñada para coincidir con la provincia maestra, salvo errores
+Validar que el código de región no fue modificado. La región reportada
+está diseñada para coincidir con la región maestra, salvo errores
 intencionales.
 
 ## Genie

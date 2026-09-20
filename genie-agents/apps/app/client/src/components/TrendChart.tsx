@@ -4,9 +4,9 @@ interface TrendChartProps {
   data: TrendRow[];
 }
 
-const money = new Intl.NumberFormat('es-AR', {
+const money = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'ARS',
+  currency: 'USD',
   notation: 'compact',
   maximumFractionDigits: 1,
 });

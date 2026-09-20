@@ -15,9 +15,9 @@ interface ActionDrawerProps {
   onSubmit: (input: ActionInput) => Promise<string>;
 }
 
-const money = new Intl.NumberFormat('es-AR', {
+const money = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'ARS',
+  currency: 'USD',
   maximumFractionDigits: 0,
 });
 
@@ -157,7 +157,7 @@ export function ActionDrawer({
                 <strong>
                   {Number(
                     alert.recommended_replenishment_units,
-                  ).toLocaleString('es-AR')}
+                  ).toLocaleString('es-419')}
                 </strong>
               </div>
             </div>

@@ -31,7 +31,7 @@ export function GeniePanel({ mockMode }: GeniePanelProps) {
             <Bot size={17} />
             <p>
               Encontré <strong>18 alertas críticas</strong>. La mayor exposición
-              está en Santa Fe, impulsada por Frescos con cobertura inferior al
+              está en la región Centro, impulsada por Frescos con cobertura inferior al
               lead time.
             </p>
           </div>

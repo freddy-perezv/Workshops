@@ -8,9 +8,9 @@ interface DecisionQueueProps {
   onSelect: (alert: AlertRow) => void;
 }
 
-const money = new Intl.NumberFormat('es-AR', {
+const money = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'ARS',
+  currency: 'USD',
   notation: 'compact',
   maximumFractionDigits: 1,
 });
@@ -85,7 +85,7 @@ export function DecisionQueue({
               </span>
               <span>
                 <strong>{alert.store_name}</strong>
-                <small>{alert.province}</small>
+                <small>{alert.region}</small>
               </span>
               <span>
                 <strong>{Number(alert.days_of_cover).toFixed(1)} días</strong>
@@ -97,7 +97,7 @@ export function DecisionQueue({
                 <strong>{money.format(Number(alert.revenue_at_risk))}</strong>
                 <small>
                   {Number(alert.recommended_replenishment_units).toLocaleString(
-                    'es-AR',
+                    'es-419',
                   )}{' '}
                   unidades
                 </small>

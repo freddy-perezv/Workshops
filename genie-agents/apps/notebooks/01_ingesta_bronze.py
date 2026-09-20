@@ -9,13 +9,14 @@
 # MAGIC **Objetivo:** simular una fuente empresarial, escribir archivos raw en
 # MAGIC un Unity Catalog Volume e ingerirlos como tablas Delta Bronze.
 # MAGIC
-# MAGIC Los datos representan ventas e inventario de una cadena de retail en
-# MAGIC Argentina. Algunos registros contienen errores intencionales. Bronze no
-# MAGIC los corrige: conserva fielmente lo recibido para mantener trazabilidad.
+# MAGIC Los datos representan ventas e inventario de una cadena de retail con
+# MAGIC operación regional. Algunos registros contienen errores intencionales.
+# MAGIC Bronze no los corrige: conserva fielmente lo recibido para mantener
+# MAGIC trazabilidad.
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "workshop_argentina_equipo_01", "Catálogo")
+dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
 
 # COMMAND ----------
 
@@ -26,7 +27,7 @@ CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
 
-spark.conf.set("spark.sql.session.timeZone", "America/Argentina/Buenos_Aires")
+spark.conf.set("spark.sql.session.timeZone", "UTC")
 config = spark.table(f"`{CATALOG}`.`ops`.`workshop_config`").first()
 SCALE = config["scale"]
 EVENT_ROWS = int(config["expected_events"])
@@ -40,35 +41,35 @@ print(f"Landing: {VOLUME_PATH}")
 # MAGIC %md
 # MAGIC ## 1. Dimensión de sucursales
 # MAGIC
-# MAGIC Creamos 120 sucursales distribuidas en 12 provincias. Esta dimensión
-# MAGIC será la referencia maestra para validar provincia y sucursal.
+# MAGIC Creamos 120 sucursales distribuidas en 12 regiones. Esta dimensión
+# MAGIC será la referencia maestra para validar región y sucursal.
 
 # COMMAND ----------
 
-PROVINCES = [
-    "Buenos Aires",
-    "CABA",
-    "Córdoba",
-    "Santa Fe",
-    "Mendoza",
-    "Tucumán",
-    "Salta",
-    "Neuquén",
-    "Río Negro",
-    "Chubut",
-    "Misiones",
-    "Entre Ríos",
+REGIONS = [
+    "Norte",
+    "Noreste",
+    "Este",
+    "Sureste",
+    "Sur",
+    "Suroeste",
+    "Oeste",
+    "Noroeste",
+    "Centro",
+    "Centro Norte",
+    "Centro Sur",
+    "Metropolitana",
 ]
 
-province_array = F.array(*[F.lit(value) for value in PROVINCES])
+region_array = F.array(*[F.lit(value) for value in REGIONS])
 
 stores = (
     spark.range(1, 121)
     .select(
         F.col("id").cast("int").alias("store_id"),
         F.format_string("Sucursal %03d", F.col("id")).alias("store_name"),
-        F.element_at(province_array, (((F.col("id") - 1) % len(PROVINCES)) + 1).cast("int")).alias(
-            "province"
+        F.element_at(region_array, (((F.col("id") - 1) % len(REGIONS)) + 1).cast("int")).alias(
+            "region"
         ),
         F.when((F.col("id") % 4) == 0, "Hipermercado")
         .when((F.col("id") % 4) == 1, "Express")
@@ -137,7 +138,7 @@ display(products.limit(10))
 # MAGIC - Cantidad negativa.
 # MAGIC - Precio nulo.
 # MAGIC - Descuento superior al 100%.
-# MAGIC - Provincia nula.
+# MAGIC - Región nula.
 # MAGIC
 # MAGIC Usamos operaciones modulares en lugar de valores aleatorios para que el
 # MAGIC experimento sea reproducible y sus métricas puedan evaluarse.
@@ -193,9 +194,9 @@ sales_events = base_events.select(
     .alias("channel"),
     F.when((F.col("id") % 613) == 0, F.lit(None).cast("string"))
     .otherwise(
-        F.element_at(province_array, ((F.col("id") % len(PROVINCES)) + 1).cast("int"))
+        F.element_at(region_array, ((F.col("id") % len(REGIONS)) + 1).cast("int"))
     )
-    .alias("reported_province"),
+    .alias("reported_region"),
 )
 
 # COMMAND ----------
@@ -334,7 +335,7 @@ display(
           COUNT_IF(quantity <= 0) AS invalid_quantity,
           COUNT_IF(unit_price IS NULL OR unit_price <= 0) AS invalid_price,
           COUNT_IF(discount_pct < 0 OR discount_pct > 0.80) AS invalid_discount,
-          COUNT_IF(reported_province IS NULL) AS null_province
+          COUNT_IF(reported_region IS NULL) AS null_region
         FROM `{CATALOG}`.`bronze`.`sales_events`
         """
     )

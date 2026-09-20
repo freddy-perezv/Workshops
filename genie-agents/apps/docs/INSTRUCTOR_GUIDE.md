@@ -8,7 +8,7 @@ la calidad de un agente comienza en la calidad y semántica de sus datos.
 
 ## Narrativa del caso
 
-Pulso Retail opera 120 sucursales en Argentina. El equipo tiene ventas e
+Pulso Retail opera 120 sucursales distribuidas en 12 regiones. El equipo tiene ventas e
 inventario, pero identifica tarde los riesgos de quiebre. La solución debe:
 
 1. Procesar datos a escala.
@@ -34,7 +34,7 @@ recorrido que seguirá el grupo antes de entrar en Databricks.
 
 - **De datos a decisiones con Genie Agents + Databricks Apps**
 - Workshop hands-on
-- Pulso Retail Argentina
+- Pulso Retail
 
 **Guion**
 
@@ -79,7 +79,7 @@ vamos a resolver juntos.”
 
 **Guion**
 
-“Pulso Retail opera 120 sucursales en Argentina. Tiene datos de ventas e
+“Pulso Retail opera 120 sucursales distribuidas en 12 regiones. Tiene datos de ventas e
 inventario, pero detecta tarde qué combinación de sucursal y producto está en
 riesgo de quedarse sin stock. Además, los datos no llegan perfectos y el
 equipo debe revisar señales dispersas, decidir qué atender primero y registrar
@@ -253,7 +253,7 @@ estado de resolución y posibilidad de reproceso.”
 2. Evalúa nueve reglas y guarda todas las causas en `dq_reasons`.
 3. Separa válidos y cuarentena.
 4. Enriquece ventas válidas con ingreso y costo estimado.
-5. Recupera únicamente provincias ausentes respaldadas por el maestro.
+5. Recupera únicamente regiones ausentes respaldadas por el maestro.
 6. Mantiene la fila recuperada en cuarentena con estado `REPROCESSED`.
 7. Evalúa inventario y aísla valores negativos.
 8. Publica métricas por regla.
@@ -313,7 +313,7 @@ La metric view define:
 
 - Dimensiones y sinónimos.
 - Medidas certificadas.
-- Moneda ARS y formato.
+- Moneda USD y formato.
 - Una fuente común para App y Genie.
 
 ### Optimización
@@ -433,7 +433,7 @@ ejecutivo. No compiten: ambos usan las mismas fuentes Gold gobernadas.”
 1. Crear un AI/BI Dashboard y asociar el SQL warehouse.
 2. Reemplazar `<catalog>` en el prompt del laboratorio.
 3. Pegar el prompt en Genie y revisar los widgets propuestos.
-4. Confirmar KPIs de 30 días, moneda ARS, riesgo, calidad y seguimiento.
+4. Confirmar KPIs de 30 días, moneda USD, riesgo, calidad y seguimiento.
 5. Corregir la metric view con `MEASURE(...)`, nunca con `SUM(...)`.
 6. Publicar o dejar listo para continuidad.
 
@@ -453,7 +453,7 @@ ejecutivo. No compiten: ambos usan las mismas fuentes Gold gobernadas.”
 Usar las 15 preguntas de `genie/evaluation-questions.csv`. Prestar especial
 atención a:
 
-- Moneda ARS.
+- Moneda USD.
 - Periodos explícitos.
 - Uso de la metric view.
 - Ausencia de invención cuando no hay filas.

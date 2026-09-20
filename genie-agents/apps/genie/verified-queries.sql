@@ -2,10 +2,10 @@
 -- Registrar cada bloque por separado como consulta verificada en Genie.
 
 -- ============================================================================
--- Q01. ¿Qué provincias tienen mayor ingreso neto en los últimos 30 días?
+-- Q01. ¿Qué regiones tienen mayor ingreso neto en los últimos 30 días?
 -- ============================================================================
 SELECT
-  province,
+  region,
   MEASURE(net_revenue) AS net_revenue,
   MEASURE(gross_margin) AS gross_margin,
   MEASURE(units_sold) AS units_sold
@@ -20,7 +20,7 @@ LIMIT 10;
 -- ============================================================================
 SELECT
   store_name,
-  province,
+  region,
   sku,
   product_name,
   category,
@@ -37,7 +37,7 @@ LIMIT 5;
 -- Q03. ¿Dónde está concentrado el ingreso en riesgo?
 -- ============================================================================
 SELECT
-  province,
+  region,
   category,
   COUNT(*) AS alerts,
   ROUND(SUM(revenue_at_risk), 2) AS revenue_at_risk,
@@ -53,7 +53,7 @@ LIMIT 10;
 -- ============================================================================
 SELECT
   store_name,
-  province,
+  region,
   COUNT(*) AS critical_alerts,
   ROUND(SUM(revenue_at_risk), 2) AS revenue_at_risk
 FROM <catalog>.gold.decision_queue
@@ -102,7 +102,7 @@ ORDER BY days_overdue DESC, priority;
 SELECT
   q.alert_id,
   q.store_name,
-  q.province,
+  q.region,
   q.sku,
   q.days_of_cover,
   q.lead_time_days,
@@ -145,10 +145,10 @@ GROUP BY ALL
 ORDER BY net_revenue DESC;
 
 -- ============================================================================
--- Q10. ¿Cuántas unidades de reposición fueron aprobadas por provincia?
+-- Q10. ¿Cuántas unidades de reposición fueron aprobadas por región?
 -- ============================================================================
 SELECT
-  q.province,
+  q.region,
   COUNT(*) AS approved_actions,
   SUM(a.recommended_units) AS approved_units
 FROM <catalog>.gold.current_actions a

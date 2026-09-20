@@ -94,6 +94,6 @@ transacción distribuida entre dos tablas.
 
 - Sustituir reglas de demanda por forecasting.
 - Enviar cambios de `action_tasks` a Slack, Jira o un ERP.
-- Aplicar row filters por provincia.
+- Aplicar row filters por región.
 - Mover workflow transaccional a Lakebase si la concurrencia OLTP lo exige.
 - Automatizar evaluación y promoción de Genie Spaces.

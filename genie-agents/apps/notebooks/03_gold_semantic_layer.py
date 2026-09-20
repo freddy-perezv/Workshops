@@ -20,7 +20,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "workshop_argentina_equipo_01", "Catálogo")
+dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
 dbutils.widgets.dropdown("optimize_tables", "true", ["true", "false"], "Optimizar tablas")
 
 # COMMAND ----------
@@ -33,7 +33,7 @@ OPTIMIZE_TABLES = dbutils.widgets.get("optimize_tables") == "true"
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
 
-spark.conf.set("spark.sql.session.timeZone", "America/Argentina/Buenos_Aires")
+spark.conf.set("spark.sql.session.timeZone", "UTC")
 spark.sql(f"USE CATALOG `{CATALOG}`")
 
 # COMMAND ----------
@@ -51,14 +51,14 @@ spark.sql(
     f"""
     CREATE OR REPLACE TABLE `{CATALOG}`.`gold`.`sales_daily`
     USING DELTA
-    CLUSTER BY (event_date, province, category)
+    CLUSTER BY (event_date, region, category)
     COMMENT 'Ventas confiables por día, sucursal, producto y canal'
     AS
     SELECT
       event_date,
       store_id,
       store_name,
-      master_province AS province,
+      master_region AS region,
       store_format,
       product_id,
       sku,
@@ -69,7 +69,7 @@ spark.sql(
       ROUND(SUM(net_revenue), 2) AS net_revenue,
       ROUND(SUM(net_revenue - estimated_cost), 2) AS gross_margin,
       COUNT(*) AS transaction_lines,
-      COUNT_IF(quality_status = 'REPROCESSED_PROVINCE') AS recovered_rows
+      COUNT_IF(quality_status = 'REPROCESSED_REGION') AS recovered_rows
     FROM `{CATALOG}`.`silver`.`sales`
     GROUP BY ALL
     """
@@ -91,14 +91,14 @@ spark.sql(
     f"""
     CREATE OR REPLACE TABLE `{CATALOG}`.`gold`.`decision_queue`
     USING DELTA
-    CLUSTER BY (priority, province, category)
+    CLUSTER BY (priority, region, category)
     COMMENT 'Alertas priorizadas de reposición para la experiencia de decisiones'
     AS
     WITH demand AS (
       SELECT
         store_id,
         store_name,
-        province,
+        region,
         store_format,
         product_id,
         sku,
@@ -118,7 +118,7 @@ spark.sql(
         i.snapshot_date,
         i.store_id,
         i.store_name,
-        i.province,
+        i.region,
         i.store_format,
         i.product_id,
         i.sku,
@@ -298,16 +298,16 @@ LANGUAGE YAML
 COMMENT 'Capa semántica de desempeño comercial para Pulso Retail'
 AS $$
 version: 1.1
-comment: "Métricas certificadas de venta para el workshop de Argentina"
+comment: "Métricas certificadas de venta para el workshop Pulso Retail"
 source: {CATALOG}.gold.sales_daily
 fields:
   - name: event_date
     expr: source.event_date
     display_name: Fecha
     comment: "Fecha calendario de la venta"
-  - name: province
-    expr: source.province
-    display_name: Provincia
+  - name: region
+    expr: source.region
+    display_name: Región
     synonyms: ["región", "territorio"]
   - name: store_name
     expr: source.store_name
@@ -327,10 +327,10 @@ measures:
   - name: net_revenue
     expr: SUM(source.net_revenue)
     display_name: Ingreso neto
-    comment: "Venta después de descuentos, expresada en pesos argentinos"
+    comment: "Venta después de descuentos, expresada en USD"
     format:
       type: currency
-      currency_code: ARS
+      currency_code: USD
       decimal_places:
         type: exact
         places: 0
@@ -341,7 +341,7 @@ measures:
     comment: "Ingreso neto menos costo estimado"
     format:
       type: currency
-      currency_code: ARS
+      currency_code: USD
       decimal_places:
         type: exact
         places: 0
@@ -369,7 +369,7 @@ measures:
     display_name: Ingreso promedio por unidad
     format:
       type: currency
-      currency_code: ARS
+      currency_code: USD
       decimal_places:
         type: exact
         places: 0
@@ -428,7 +428,7 @@ display(
     spark.sql(
         f"""
         SELECT
-          province,
+          region,
           MEASURE(net_revenue) AS net_revenue,
           MEASURE(gross_margin) AS gross_margin,
           MEASURE(units_sold) AS units_sold

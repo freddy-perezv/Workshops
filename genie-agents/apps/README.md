@@ -3,7 +3,7 @@
 Laboratorio hands-on de tres horas para construir una solución de decisiones de
 retail de extremo a extremo sobre Databricks.
 
-El caso, **Pulso Retail Argentina**, ayuda a un responsable de operaciones a
+El caso, **Pulso Retail**, ayuda a un responsable de operaciones a
 detectar sucursales y productos con riesgo de quiebre de stock, entender la
 situación con Genie y convertir el análisis en una acción auditable desde una
 Databricks App.

@@ -29,7 +29,7 @@ export interface AlertRow {
   alert_id: string;
   priority: Priority;
   store_name: string;
-  province: string;
+  region: string;
   sku: string;
   product_name: string;
   category: string;

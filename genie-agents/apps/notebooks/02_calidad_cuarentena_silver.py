@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "workshop_argentina_equipo_01", "Catálogo")
+dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
 
 # COMMAND ----------
 
@@ -26,7 +26,7 @@ CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
 
-spark.conf.set("spark.sql.session.timeZone", "America/Argentina/Buenos_Aires")
+spark.conf.set("spark.sql.session.timeZone", "UTC")
 sales = spark.table(f"`{CATALOG}`.`bronze`.`sales_events`").alias("s")
 stores = spark.table(f"`{CATALOG}`.`bronze`.`stores`").alias("st")
 products = spark.table(f"`{CATALOG}`.`bronze`.`products`").alias("p")
@@ -56,7 +56,7 @@ joined_sales = sales.join(
     stores.select(
         F.col("store_id").alias("master_store_id"),
         F.col("store_name"),
-        F.col("province").alias("master_province"),
+        F.col("region").alias("master_region"),
         F.col("store_format"),
     ),
     F.col("s.store_id") == F.col("master_store_id"),
@@ -98,12 +98,12 @@ rule_results = [
         | (F.col("discount_pct") > 0.80),
         "DQ006_DISCOUNT_INVALID",
     ),
-    F.when(F.col("reported_province").isNull(), "DQ007_PROVINCE_MISSING"),
+    F.when(F.col("reported_region").isNull(), "DQ007_REGION_MISSING"),
     F.when(
-        F.col("reported_province").isNotNull()
-        & F.col("master_province").isNotNull()
-        & (F.col("reported_province") != F.col("master_province")),
-        "DQ008_PROVINCE_MISMATCH",
+        F.col("reported_region").isNotNull()
+        & F.col("master_region").isNotNull()
+        & (F.col("reported_region") != F.col("master_region")),
+        "DQ008_REGION_MISMATCH",
     ),
 ]
 
@@ -128,7 +128,7 @@ valid_sales = evaluated_sales.filter("dq_passed").select(
     "event_date",
     F.col("s.store_id").alias("store_id"),
     "store_name",
-    "master_province",
+    "master_region",
     "store_format",
     F.col("s.product_id").alias("product_id"),
     "sku",
@@ -168,8 +168,8 @@ quarantine_sales = (
         "unit_price",
         "discount_pct",
         "channel",
-        "reported_province",
-        "master_province",
+        "reported_region",
+        "master_region",
         "dq_reasons",
         "source_file",
         "ingested_at",
@@ -184,7 +184,7 @@ quarantine_sales = (
 # MAGIC %md
 # MAGIC ## 3. Reprocesar un error recuperable
 # MAGIC
-# MAGIC Una provincia ausente puede completarse desde la dimensión maestra si
+# MAGIC Una región ausente puede completarse desde la dimensión maestra si
 # MAGIC la sucursal es válida y no existe otro error. No “arreglamos” precios,
 # MAGIC productos o cantidades sin una decisión de negocio.
 
@@ -192,7 +192,7 @@ quarantine_sales = (
 
 recoverable = evaluated_sales.filter(
     (F.size("dq_reasons") == 1)
-    & (F.array_contains("dq_reasons", "DQ007_PROVINCE_MISSING"))
+    & (F.array_contains("dq_reasons", "DQ007_REGION_MISSING"))
 )
 
 recovered_sales = recoverable.select(
@@ -201,7 +201,7 @@ recovered_sales = recoverable.select(
     "event_date",
     F.col("s.store_id").alias("store_id"),
     "store_name",
-    "master_province",
+    "master_region",
     "store_format",
     F.col("s.product_id").alias("product_id"),
     "sku",
@@ -224,7 +224,7 @@ recovered_sales = recoverable.select(
     )
     .cast("decimal(20,2)")
     .alias("estimated_cost"),
-    F.lit("REPROCESSED_PROVINCE").alias("quality_status"),
+    F.lit("REPROCESSED_REGION").alias("quality_status"),
     "source_file",
     "ingested_at",
 )
@@ -244,7 +244,7 @@ quarantine_sales = (
         "resolution_note",
         F.when(
             F.col("resolved"),
-            "Provincia completada desde la dimensión maestra de sucursales",
+            "Región completada desde la dimensión maestra de sucursales",
         ),
     )
     .drop("resolved")
@@ -263,7 +263,7 @@ quarantine_sales = (
 
 evaluated_inventory = (
     inventory.join(
-        stores.select("store_id", "store_name", "province", "store_format"),
+        stores.select("store_id", "store_name", "region", "store_format"),
         "store_id",
         "left",
     )
@@ -334,8 +334,8 @@ rule_dictionary = spark.createDataFrame(
         ("DQ004_QUANTITY_OUT_OF_RANGE", "Cantidad fuera de rango"),
         ("DQ005_PRICE_INVALID", "Precio nulo o no positivo"),
         ("DQ006_DISCOUNT_INVALID", "Descuento fuera de política"),
-        ("DQ007_PROVINCE_MISSING", "Provincia ausente"),
-        ("DQ008_PROVINCE_MISMATCH", "Provincia no coincide con sucursal"),
+        ("DQ007_REGION_MISSING", "Región ausente"),
+        ("DQ008_REGION_MISMATCH", "Región no coincide con sucursal"),
         ("DQ009_EVENT_ID_DUPLICATED", "Identificador de evento duplicado"),
     ],
     ["rule_id", "rule_description"],
@@ -372,7 +372,7 @@ dq_metrics = (
 # MAGIC ## 7. Validar el resultado
 # MAGIC
 # MAGIC Observa tres cantidades: Bronze, Silver y cuarentena. Silver incluye
-# MAGIC filas originalmente válidas más provincias recuperadas. La suma no debe
+# MAGIC filas originalmente válidas más regiones recuperadas. La suma no debe
 # MAGIC hacerse directamente porque los registros reprocesados permanecen en
 # MAGIC cuarentena como evidencia histórica.
 

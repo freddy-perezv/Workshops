@@ -15,9 +15,9 @@ import type {
 
 const MOCK_MODE = import.meta.env.VITE_MOCK_MODE === 'true';
 const MOCK_CONFIG: AppConfig = {
-  queueTable: 'workshop_argentina.gold.decision_queue',
-  metricView: 'workshop_argentina.gold.retail_performance_metrics',
-  actionsTable: 'workshop_argentina.ops.action_tasks',
+  queueTable: 'workshop_retail.gold.decision_queue',
+  metricView: 'workshop_retail.gold.retail_performance_metrics',
+  actionsTable: 'workshop_retail.ops.action_tasks',
 };
 
 export function useWorkshopData(priority: Priority | 'ALL') {

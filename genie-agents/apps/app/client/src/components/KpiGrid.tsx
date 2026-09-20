@@ -10,13 +10,13 @@ interface KpiGridProps {
   data?: KpiRow;
 }
 
-const compactMoney = new Intl.NumberFormat('es-AR', {
+const compactMoney = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'ARS',
+  currency: 'USD',
   notation: 'compact',
   maximumFractionDigits: 1,
 });
-const integer = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
+const integer = new Intl.NumberFormat('es-419', { maximumFractionDigits: 0 });
 
 export function KpiGrid({ data }: KpiGridProps) {
   const kpis = [

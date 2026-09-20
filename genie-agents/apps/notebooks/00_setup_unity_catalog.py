@@ -32,7 +32,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "workshop_argentina_equipo_01", "01. Catálogo")
+dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "01. Catálogo")
 dbutils.widgets.dropdown("create_catalog", "true", ["true", "false"], "02. Crear catálogo")
 dbutils.widgets.dropdown("scale", "M", ["S", "M", "L"], "03. Escala")
 
@@ -58,12 +58,12 @@ SCALE_ROWS = {
 
 EVENT_ROWS = SCALE_ROWS[SCALE]
 CURRENT_USER = spark.sql("SELECT current_user() AS user").first()["user"]
-spark.conf.set("spark.sql.session.timeZone", "America/Argentina/Buenos_Aires")
+spark.conf.set("spark.sql.session.timeZone", "UTC")
 
 print(f"Usuario: {CURRENT_USER}")
 print(f"Catálogo: {CATALOG}")
 print(f"Escala: {SCALE} ({EVENT_ROWS:,} eventos)")
-print("Zona horaria de negocio: America/Argentina/Buenos_Aires")
+print("Zona horaria de negocio: UTC")
 
 # COMMAND ----------
 
@@ -118,7 +118,7 @@ else:
 try:
     spark.sql(
         f"""COMMENT ON CATALOG `{CATALOG}` IS
-        'Workshop Argentina: datos gobernados, Genie Agent y Databricks App'"""
+        'Workshop Pulso Retail: datos gobernados, Genie Agent y Databricks App'"""
     )
 except Exception:
     pass  # Ignorar si no tiene permisos para comentar
@@ -147,7 +147,7 @@ print(f"\n✅ Catálogo '{CATALOG}' y schemas configurados correctamente.")
 spark.sql(
     f"""
     CREATE VOLUME IF NOT EXISTS `{CATALOG}`.`bronze`.`landing`
-    COMMENT 'Archivos raw del laboratorio Pulso Retail Argentina'
+    COMMENT 'Archivos raw del laboratorio Pulso Retail'
     """
 )
 

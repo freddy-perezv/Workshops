@@ -10,7 +10,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "workshop_argentina_equipo_01", "Catálogo")
+dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
 
 # COMMAND ----------
 
@@ -20,7 +20,7 @@ CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
 
-spark.conf.set("spark.sql.session.timeZone", "America/Argentina/Buenos_Aires")
+spark.conf.set("spark.sql.session.timeZone", "UTC")
 
 # COMMAND ----------
 

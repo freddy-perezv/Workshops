@@ -5,7 +5,7 @@ SELECT
   alert_id,
   priority,
   store_name,
-  province,
+  region,
   sku,
   product_name,
   category,
