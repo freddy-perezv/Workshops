@@ -18,9 +18,9 @@ La experiencia combina:
 4. Consulta a Genie para entender contexto y alternativas.
 5. Elige `APPROVE_REPLENISHMENT`, `INVESTIGATE` o `DISMISS`.
 6. Asigna responsable y justifica la decisión.
-7. La App inserta una fila en `<catalog>.ops.action_tasks`.
+7. La App inserta una fila en `<catalog>.ops_<id>.action_tasks`.
 8. La tarea aparece en la App y puede marcarse como completada.
-9. Genie consulta `<catalog>.gold.current_actions` y cierra el ciclo.
+9. Genie consulta `<catalog>.gold_<id>.current_actions` y cierra el ciclo.
 
 ---
 
@@ -50,9 +50,9 @@ Antes de crear la App, verifica que todo esté en su sitio:
 
 - Notebooks 00–03 ejecutadas con **tu catálogo**.
 - Tablas existentes:
-  - `<catalogo>.gold.decision_queue`
-  - `<catalogo>.gold.retail_performance_metrics`
-  - `<catalogo>.ops.action_tasks`
+  - `<catalogo>.gold_<id>.decision_queue`
+  - `<catalogo>.gold_<id>.retail_performance_metrics`
+  - `<catalogo>.ops_<id>.action_tasks`
 - Lab 1 completado: Genie Space configurado con esas tablas e instrucciones
   (no un space vacío).
 - SQL warehouse encendido, con permiso `CAN_USE`.
@@ -96,10 +96,10 @@ editar `databricks.yml` (que no se toca en este camino).
 | --- | --- | --- | --- |
 | `sql-warehouse` | SQL warehouse | El warehouse del lab | `CAN_USE` |
 | `genie-space` | Genie Space | El space del Lab 1 | `CAN_RUN` |
-| `queue-table` | Tabla UC | `<catalogo>.gold.decision_queue` | `SELECT` |
-| `metric-view` | Tabla UC | `<catalogo>.gold.retail_performance_metrics` | `SELECT` |
-| `actions-table-read` | Tabla UC | `<catalogo>.ops.action_tasks` | `SELECT` |
-| `actions-table-write` | Tabla UC | La **misma** `<catalogo>.ops.action_tasks` | `MODIFY` |
+| `queue-table` | Tabla UC | `<catalogo>.gold_<id>.decision_queue` | `SELECT` |
+| `metric-view` | Tabla UC | `<catalogo>.gold_<id>.retail_performance_metrics` | `SELECT` |
+| `actions-table-read` | Tabla UC | `<catalogo>.ops_<id>.action_tasks` | `SELECT` |
+| `actions-table-write` | Tabla UC | La **misma** `<catalogo>.ops_<id>.action_tasks` | `MODIFY` |
 
 Las tablas Gold/ops se llaman igual para todos los equipos; lo único que cambia
 es el catálogo.
@@ -175,6 +175,7 @@ Completa solo el bloque `targets:` → `dev:`. No toques los `${var....}` de
 | `sql_warehouse_id` | ID del warehouse (URL `/sql/warehouses/<id>`) |
 | `genie_space_id` | ID del Genie Space (URL `/genie/rooms/<id>`) |
 | `catalog_name` | Catálogo de las notebooks 00–04 |
+| `participant_id` | El mismo identificador usado en las notebooks |
 | `app_name` | Nombre corto (2–30 caracteres, minúsculas y guiones) |
 
 **3. Validar, deployar, publicar**
@@ -196,16 +197,16 @@ tres comandos.
 recurso declarado en el bundle. Databricks inyecta el valor real (ID de
 warehouse, ID de Genie, o `catalog.schema.tabla`) en la variable de entorno.
 
-Las tablas Gold/`ops` **sí se llaman igual para todos** (`gold.decision_queue`,
-etc.). Lo único que cambia por equipo es `catalog_name` en `targets.dev`.
+El catálogo puede ser el mismo para todos. Los schemas cambian según
+`participant_id`, por ejemplo `gold_freddy` y `ops_freddy`.
 
 | Variable de entorno (`app.yaml`) | `valueFrom` (alias) | Recurso en `databricks.yml` | Valor que termina usando la App |
 | --- | --- | --- | --- |
 | `DATABRICKS_WAREHOUSE_ID` | `sql-warehouse` | `sql_warehouse.id` | ID del warehouse |
 | `DATABRICKS_GENIE_SPACE_ID` | `genie-space` | `genie_space.space_id` | ID del Space |
-| `GOLD_QUEUE_TABLE` | `queue-table` | `${catalog}.gold.decision_queue` | Nombre UC de 3 partes |
-| `GOLD_METRIC_VIEW` | `metric-view` | `${catalog}.gold.retail_performance_metrics` | Nombre UC de 3 partes |
-| `OPS_ACTIONS_TABLE` | `actions-table-read` | `${catalog}.ops.action_tasks` | Nombre UC de 3 partes |
+| `GOLD_QUEUE_TABLE` | `queue-table` | `${catalog}.gold_${id}.decision_queue` | Nombre UC de 3 partes |
+| `GOLD_METRIC_VIEW` | `metric-view` | `${catalog}.gold_${id}.retail_performance_metrics` | Nombre UC de 3 partes |
+| `OPS_ACTIONS_TABLE` | `actions-table-read` | `${catalog}.ops_${id}.action_tasks` | Nombre UC de 3 partes |
 
 No uses aliases genéricos de la UI (`table`, `table-2`, `table-3`): ni el
 bundle ni la App los reconocen, y la App muestra *No se pudo leer la
@@ -219,9 +220,9 @@ configuración*.
 | --- | --- |
 | SQL Warehouse | `CAN_USE` |
 | Genie Space | `CAN_RUN` |
-| `gold.decision_queue` | `SELECT` |
-| `gold.retail_performance_metrics` | `SELECT` |
-| `ops.action_tasks` | `SELECT` + `MODIFY` |
+| `gold_<id>.decision_queue` | `SELECT` |
+| `gold_<id>.retail_performance_metrics` | `SELECT` |
+| `ops_<id>.action_tasks` | `SELECT` + `MODIFY` |
 
 Si usaste la **UI de Apps**, los permisos se asignan en los recursos del
 paso 4. Si usaste **CLI / Asset Bundle**, están en `databricks.yml` →
@@ -290,9 +291,9 @@ npm run dev
 
 - SQL warehouse con `CAN_USE`.
 - Genie Space con `CAN_RUN`.
-- `gold.decision_queue` con `SELECT`.
-- `gold.retail_performance_metrics` con `SELECT`.
-- `ops.action_tasks` con `SELECT` y `MODIFY`.
+- `gold_<id>.decision_queue` con `SELECT`.
+- `gold_<id>.retail_performance_metrics` con `SELECT`.
+- `ops_<id>.action_tasks` con `SELECT` y `MODIFY`.
 
 Databricks Apps concede además `USE CATALOG` y `USE SCHEMA` para los securables
 declarados.
@@ -304,7 +305,7 @@ declarados.
 - El navegador no envía SQL.
 - El backend valida el payload con Zod.
 - El backend recupera prioridad, sucursal, producto y unidades desde
-  `gold.decision_queue`; no confía en esos valores del cliente.
+  `gold_<id>.decision_queue`; no confía en esos valores del cliente.
 - Todos los valores se envían como parámetros tipados.
 - Los nombres de tabla proceden de recursos de Databricks Apps y se validan
   como nombres UC de tres partes.

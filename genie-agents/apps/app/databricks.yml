@@ -10,7 +10,9 @@ variables:
     description: Genie Space display name
     default: Pulso Retail
   catalog_name:
-    description: Catálogo creado en las notebooks
+    description: Catálogo compartido utilizado en las notebooks
+  participant_id:
+    description: Identificador usado para crear los schemas del participante
   app_name:
     description: Nombre de la App (2-30 caracteres, único en el workspace)
 
@@ -34,22 +36,22 @@ resources:
             permission: CAN_RUN
         - name: queue-table
           uc_securable:
-            securable_full_name: ${var.catalog_name}.gold.decision_queue
+            securable_full_name: ${var.catalog_name}.gold_${var.participant_id}.decision_queue
             securable_type: TABLE
             permission: SELECT
         - name: metric-view
           uc_securable:
-            securable_full_name: ${var.catalog_name}.gold.retail_performance_metrics
+            securable_full_name: ${var.catalog_name}.gold_${var.participant_id}.retail_performance_metrics
             securable_type: TABLE
             permission: SELECT
         - name: actions-table-read
           uc_securable:
-            securable_full_name: ${var.catalog_name}.ops.action_tasks
+            securable_full_name: ${var.catalog_name}.ops_${var.participant_id}.action_tasks
             securable_type: TABLE
             permission: SELECT
         - name: actions-table-write
           uc_securable:
-            securable_full_name: ${var.catalog_name}.ops.action_tasks
+            securable_full_name: ${var.catalog_name}.ops_${var.participant_id}.action_tasks
             securable_type: TABLE
             permission: MODIFY
 
@@ -63,4 +65,5 @@ targets:
       sql_warehouse_id: REPLACE_WITH_WAREHOUSE_ID
       genie_space_id: REPLACE_WITH_GENIE_SPACE_ID
       catalog_name: REPLACE_WITH_CATALOG_NAME
+      participant_id: REPLACE_WITH_PARTICIPANT_ID
       app_name: pulso-eq01

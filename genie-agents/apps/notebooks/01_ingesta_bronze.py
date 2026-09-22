@@ -17,6 +17,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
+dbutils.widgets.text("participant_id", "", "Tu identificador")
 
 # COMMAND ----------
 
@@ -24,14 +25,20 @@ import re
 from pyspark.sql import functions as F
 
 CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
+PARTICIPANT_ID = dbutils.widgets.get("participant_id").strip().lower()
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
+if not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", PARTICIPANT_ID):
+    raise ValueError("Identificador inválido. Usa solo a-z, 0-9 o _.")
+
+BRONZE_SCHEMA = f"bronze_{PARTICIPANT_ID}"
+OPS_SCHEMA = f"ops_{PARTICIPANT_ID}"
 
 spark.conf.set("spark.sql.session.timeZone", "UTC")
-config = spark.table(f"`{CATALOG}`.`ops`.`workshop_config`").first()
+config = spark.table(f"`{CATALOG}`.`{OPS_SCHEMA}`.`workshop_config`").first()
 SCALE = config["scale"]
 EVENT_ROWS = int(config["expected_events"])
-VOLUME_PATH = f"/Volumes/{CATALOG}/bronze/landing"
+VOLUME_PATH = f"/Volumes/{CATALOG}/{BRONZE_SCHEMA}/landing"
 
 print(f"Generando {EVENT_ROWS:,} eventos (escala {SCALE})")
 print(f"Landing: {VOLUME_PATH}")
@@ -311,7 +318,7 @@ for name, frame in {
         .write.mode("overwrite")
         .option("overwriteSchema", "true")
         .format("delta")
-        .saveAsTable(f"`{CATALOG}`.`bronze`.`{name}`")
+        .saveAsTable(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`{name}`")
     )
 
 # COMMAND ----------
@@ -336,7 +343,7 @@ display(
           COUNT_IF(unit_price IS NULL OR unit_price <= 0) AS invalid_price,
           COUNT_IF(discount_pct < 0 OR discount_pct > 0.80) AS invalid_discount,
           COUNT_IF(reported_region IS NULL) AS null_region
-        FROM `{CATALOG}`.`bronze`.`sales_events`
+        FROM `{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`
         """
     )
 )

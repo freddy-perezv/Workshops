@@ -17,16 +17,17 @@ debe realizarse en un workspace **DEV o QA**, nunca en producción.
 
 ## Privilegios mínimos de Unity Catalog
 
-### Opción A: catálogo por participante (diseño principal)
+### Opción A: catálogo compartido y schemas por participante (diseño principal)
 
-- `CREATE CATALOG` en el metastore.
-- El participante será owner del catálogo creado y podrá crear los schemas
-  `bronze`, `silver`, `gold` y `ops`, además del volume de landing.
+- El administrador crea un catálogo compartido.
+- Cada participante recibe `USE CATALOG` y `CREATE SCHEMA`.
+- La notebook 00 crea `bronze_<id>`, `silver_<id>`, `gold_<id>` y `ops_<id>`,
+  además de un volume de landing aislado.
 
-### Opción B: catálogo previamente asignado por participante o equipo
+### Opción B: catálogo por participante o equipo
 
 Cuando la política de gobierno no permita `CREATE CATALOG`, el administrador
-debe crear un catálogo dedicado para cada participante/equipo y conceder:
+el administrador puede crear un catálogo dedicado para cada equipo y conceder:
 
 - `USE CATALOG` y `CREATE SCHEMA` sobre el catálogo.
 - Si los schemas ya existen: `USE SCHEMA`, `CREATE TABLE`, `CREATE VOLUME`,

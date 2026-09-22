@@ -16,6 +16,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
+dbutils.widgets.text("participant_id", "", "Tu identificador")
 
 # COMMAND ----------
 
@@ -23,14 +24,20 @@ import re
 from pyspark.sql import functions as F
 
 CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
+PARTICIPANT_ID = dbutils.widgets.get("participant_id").strip().lower()
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
+if not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", PARTICIPANT_ID):
+    raise ValueError("Identificador inválido. Usa solo a-z, 0-9 o _.")
+
+BRONZE_SCHEMA = f"bronze_{PARTICIPANT_ID}"
+SILVER_SCHEMA = f"silver_{PARTICIPANT_ID}"
 
 spark.conf.set("spark.sql.session.timeZone", "UTC")
-sales = spark.table(f"`{CATALOG}`.`bronze`.`sales_events`").alias("s")
-stores = spark.table(f"`{CATALOG}`.`bronze`.`stores`").alias("st")
-products = spark.table(f"`{CATALOG}`.`bronze`.`products`").alias("p")
-inventory = spark.table(f"`{CATALOG}`.`bronze`.`inventory_snapshot`").alias("i")
+sales = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`").alias("s")
+stores = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`stores`").alias("st")
+products = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`products`").alias("p")
+inventory = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`inventory_snapshot`").alias("i")
 
 # COMMAND ----------
 
@@ -44,7 +51,7 @@ inventory = spark.table(f"`{CATALOG}`.`bronze`.`inventory_snapshot`").alias("i")
 # COMMAND ----------
 
 duplicate_ids = (
-    spark.table(f"`{CATALOG}`.`bronze`.`sales_events`")
+    spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`")
     .groupBy("event_id")
     .count()
     .filter(F.col("count") > 1)
@@ -312,7 +319,7 @@ for table_name, frame in {
         frame.write.mode("overwrite")
         .option("overwriteSchema", "true")
         .format("delta")
-        .saveAsTable(f"`{CATALOG}`.`silver`.`{table_name}`")
+        .saveAsTable(f"`{CATALOG}`.`{SILVER_SCHEMA}`.`{table_name}`")
     )
 
 # COMMAND ----------
@@ -363,7 +370,7 @@ dq_metrics = (
     dq_metrics.write.mode("overwrite")
     .option("overwriteSchema", "true")
     .format("delta")
-    .saveAsTable(f"`{CATALOG}`.`silver`.`data_quality_metrics`")
+    .saveAsTable(f"`{CATALOG}`.`{SILVER_SCHEMA}`.`data_quality_metrics`")
 )
 
 # COMMAND ----------
@@ -382,23 +389,23 @@ display(
     spark.sql(
         f"""
         SELECT 'bronze' AS layer, COUNT(*) AS rows
-        FROM `{CATALOG}`.`bronze`.`sales_events`
+        FROM `{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`
         UNION ALL
-        SELECT 'silver', COUNT(*) FROM `{CATALOG}`.`silver`.`sales`
+        SELECT 'silver', COUNT(*) FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`sales`
         UNION ALL
         SELECT 'quarantine_pending', COUNT(*)
-        FROM `{CATALOG}`.`silver`.`quarantine_sales`
+        FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`quarantine_sales`
         WHERE resolution_status = 'PENDING'
         UNION ALL
         SELECT 'quarantine_reprocessed', COUNT(*)
-        FROM `{CATALOG}`.`silver`.`quarantine_sales`
+        FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`quarantine_sales`
         WHERE resolution_status = 'REPROCESSED'
         """
     )
 )
 
 display(
-    spark.table(f"`{CATALOG}`.`silver`.`data_quality_metrics`").orderBy(
+    spark.table(f"`{CATALOG}`.`{SILVER_SCHEMA}`.`data_quality_metrics`").orderBy(
         "rule_id"
     )
 )

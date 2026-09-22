@@ -11,14 +11,21 @@
 # COMMAND ----------
 
 dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
+dbutils.widgets.text("participant_id", "", "Tu identificador")
 
 # COMMAND ----------
 
 import re
 
 CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
+PARTICIPANT_ID = dbutils.widgets.get("participant_id").strip().lower()
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
+if not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", PARTICIPANT_ID):
+    raise ValueError("Identificador inválido. Usa solo a-z, 0-9 o _.")
+
+GOLD_SCHEMA = f"gold_{PARTICIPANT_ID}"
+OPS_SCHEMA = f"ops_{PARTICIPANT_ID}"
 
 spark.conf.set("spark.sql.session.timeZone", "UTC")
 
@@ -44,7 +51,7 @@ display(
           created_by,
           created_at,
           due_at
-        FROM `{CATALOG}`.`ops`.`action_tasks`
+        FROM `{CATALOG}`.`{OPS_SCHEMA}`.`action_tasks`
         ORDER BY created_at DESC
         LIMIT 20
         """
@@ -62,7 +69,7 @@ display(
 # COMMAND ----------
 
 history = spark.sql(
-    f"DESCRIBE HISTORY `{CATALOG}`.`ops`.`action_tasks`"
+    f"DESCRIBE HISTORY `{CATALOG}`.`{OPS_SCHEMA}`.`action_tasks`"
 )
 current_version = int(history.agg({"version": "max"}).first()[0] or 0)
 starting_version = max(0, current_version - 10)
@@ -80,7 +87,7 @@ try:
               status,
               assignee
             FROM table_changes(
-              '{CATALOG}.ops.action_tasks',
+              '{CATALOG}.{OPS_SCHEMA}.action_tasks',
               {starting_version}
             )
             ORDER BY _commit_version DESC
@@ -110,7 +117,7 @@ display(
           COUNT_IF(due_at < current_timestamp() AND status NOT IN ('DONE', 'CANCELLED'))
             AS overdue_tasks,
           SUM(recommended_units) AS committed_units
-        FROM `{CATALOG}`.`gold`.`current_actions`
+        FROM `{CATALOG}`.`{GOLD_SCHEMA}`.`current_actions`
         GROUP BY ALL
         ORDER BY tasks DESC
         """
