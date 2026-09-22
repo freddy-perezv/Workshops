@@ -9,7 +9,7 @@ SELECT
   MEASURE(net_revenue) AS net_revenue,
   MEASURE(gross_margin) AS gross_margin,
   MEASURE(units_sold) AS units_sold
-FROM <catalog>.gold.retail_performance_metrics
+FROM <catalog>.<gold_schema>.retail_performance_metrics
 WHERE event_date >= date_sub(current_date(), 29)
 GROUP BY ALL
 ORDER BY net_revenue DESC
@@ -28,7 +28,7 @@ SELECT
   lead_time_days,
   revenue_at_risk,
   recommended_replenishment_units
-FROM <catalog>.gold.decision_queue
+FROM <catalog>.<gold_schema>.decision_queue
 WHERE priority = 'CRITICAL'
 ORDER BY revenue_at_risk DESC, store_name, sku
 LIMIT 5;
@@ -42,7 +42,7 @@ SELECT
   COUNT(*) AS alerts,
   ROUND(SUM(revenue_at_risk), 2) AS revenue_at_risk,
   SUM(recommended_replenishment_units) AS recommended_units
-FROM <catalog>.gold.decision_queue
+FROM <catalog>.<gold_schema>.decision_queue
 WHERE priority IN ('CRITICAL', 'HIGH')
 GROUP BY ALL
 ORDER BY revenue_at_risk DESC
@@ -56,7 +56,7 @@ SELECT
   region,
   COUNT(*) AS critical_alerts,
   ROUND(SUM(revenue_at_risk), 2) AS revenue_at_risk
-FROM <catalog>.gold.decision_queue
+FROM <catalog>.<gold_schema>.decision_queue
 WHERE priority = 'CRITICAL'
 GROUP BY ALL
 ORDER BY critical_alerts DESC, revenue_at_risk DESC
@@ -76,7 +76,7 @@ SELECT
   assignee,
   due_at,
   created_by
-FROM <catalog>.gold.current_actions
+FROM <catalog>.<gold_schema>.current_actions
 WHERE CAST(created_at AS DATE) = current_date()
 ORDER BY created_at DESC;
 
@@ -92,7 +92,7 @@ SELECT
   assignee,
   due_at,
   datediff(current_timestamp(), due_at) AS days_overdue
-FROM <catalog>.gold.current_actions
+FROM <catalog>.<gold_schema>.current_actions
 WHERE is_overdue
 ORDER BY days_overdue DESC, priority;
 
@@ -108,8 +108,8 @@ SELECT
   q.lead_time_days,
   q.revenue_at_risk,
   q.recommended_replenishment_units
-FROM <catalog>.gold.decision_queue q
-LEFT ANTI JOIN <catalog>.gold.current_actions a
+FROM <catalog>.<gold_schema>.decision_queue q
+LEFT ANTI JOIN <catalog>.<gold_schema>.current_actions a
   ON q.alert_id = a.alert_id
  AND a.status IN ('OPEN', 'IN_PROGRESS', 'DONE')
 WHERE q.priority = 'CRITICAL'
@@ -125,7 +125,7 @@ SELECT
   failed_rows,
   total_rows,
   pass_rate_pct
-FROM <catalog>.gold.data_quality_summary
+FROM <catalog>.<gold_schema>.data_quality_summary
 ORDER BY failed_rows DESC, rule_id;
 
 -- ============================================================================
@@ -139,7 +139,7 @@ SELECT
     MEASURE(gross_margin) / NULLIF(MEASURE(net_revenue), 0) * 100,
     2
   ) AS gross_margin_pct
-FROM <catalog>.gold.retail_performance_metrics
+FROM <catalog>.<gold_schema>.retail_performance_metrics
 WHERE event_date >= date_sub(current_date(), 29)
 GROUP BY ALL
 ORDER BY net_revenue DESC;
@@ -151,8 +151,8 @@ SELECT
   q.region,
   COUNT(*) AS approved_actions,
   SUM(a.recommended_units) AS approved_units
-FROM <catalog>.gold.current_actions a
-JOIN <catalog>.gold.decision_queue q USING (alert_id)
+FROM <catalog>.<gold_schema>.current_actions a
+JOIN <catalog>.<gold_schema>.decision_queue q USING (alert_id)
 WHERE a.decision_type = 'APPROVE_REPLENISHMENT'
   AND a.status IN ('OPEN', 'IN_PROGRESS', 'DONE')
 GROUP BY ALL
@@ -165,7 +165,7 @@ SELECT
   event_date,
   MEASURE(net_revenue) AS net_revenue,
   MEASURE(gross_margin) AS gross_margin
-FROM <catalog>.gold.retail_performance_metrics
+FROM <catalog>.<gold_schema>.retail_performance_metrics
 WHERE event_date >= date_sub(current_date(), 13)
 GROUP BY ALL
 ORDER BY event_date;
@@ -178,7 +178,7 @@ SELECT
   COUNT(*) AS alerts,
   SUM(recommended_replenishment_units) AS recommended_units,
   ROUND(SUM(revenue_at_risk), 2) AS revenue_at_risk
-FROM <catalog>.gold.decision_queue
+FROM <catalog>.<gold_schema>.decision_queue
 WHERE priority IN ('CRITICAL', 'HIGH')
 GROUP BY ALL
 ORDER BY recommended_units DESC

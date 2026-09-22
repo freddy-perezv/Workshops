@@ -21,6 +21,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
+dbutils.widgets.text("participant_id", "", "Tu identificador")
 dbutils.widgets.dropdown("optimize_tables", "true", ["true", "false"], "Optimizar tablas")
 
 # COMMAND ----------
@@ -28,10 +29,18 @@ dbutils.widgets.dropdown("optimize_tables", "true", ["true", "false"], "Optimiza
 import re
 
 CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
+PARTICIPANT_ID = dbutils.widgets.get("participant_id").strip().lower()
 OPTIMIZE_TABLES = dbutils.widgets.get("optimize_tables") == "true"
 
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
     raise ValueError("Nombre de catálogo inválido.")
+if not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", PARTICIPANT_ID):
+    raise ValueError("Identificador inválido. Usa solo a-z, 0-9 o _.")
+
+BRONZE_SCHEMA = f"bronze_{PARTICIPANT_ID}"
+SILVER_SCHEMA = f"silver_{PARTICIPANT_ID}"
+GOLD_SCHEMA = f"gold_{PARTICIPANT_ID}"
+OPS_SCHEMA = f"ops_{PARTICIPANT_ID}"
 
 spark.conf.set("spark.sql.session.timeZone", "UTC")
 spark.sql(f"USE CATALOG `{CATALOG}`")
@@ -49,7 +58,7 @@ spark.sql(f"USE CATALOG `{CATALOG}`")
 
 spark.sql(
     f"""
-    CREATE OR REPLACE TABLE `{CATALOG}`.`gold`.`sales_daily`
+    CREATE OR REPLACE TABLE `{CATALOG}`.`{GOLD_SCHEMA}`.`sales_daily`
     USING DELTA
     CLUSTER BY (event_date, region, category)
     COMMENT 'Ventas confiables por día, sucursal, producto y canal'
@@ -70,7 +79,7 @@ spark.sql(
       ROUND(SUM(net_revenue - estimated_cost), 2) AS gross_margin,
       COUNT(*) AS transaction_lines,
       COUNT_IF(quality_status = 'REPROCESSED_REGION') AS recovered_rows
-    FROM `{CATALOG}`.`silver`.`sales`
+    FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`sales`
     GROUP BY ALL
     """
 )
@@ -89,7 +98,7 @@ spark.sql(
 
 spark.sql(
     f"""
-    CREATE OR REPLACE TABLE `{CATALOG}`.`gold`.`decision_queue`
+    CREATE OR REPLACE TABLE `{CATALOG}`.`{GOLD_SCHEMA}`.`decision_queue`
     USING DELTA
     CLUSTER BY (priority, region, category)
     COMMENT 'Alertas priorizadas de reposición para la experiencia de decisiones'
@@ -107,7 +116,7 @@ spark.sql(
         SUM(units_sold) / 30.0 AS avg_daily_units,
         SUM(net_revenue) / 30.0 AS avg_daily_revenue,
         SUM(gross_margin) / 30.0 AS avg_daily_margin
-      FROM `{CATALOG}`.`gold`.`sales_daily`
+      FROM `{CATALOG}`.`{GOLD_SCHEMA}`.`sales_daily`
       WHERE event_date >= date_sub(current_date(), 29)
       GROUP BY ALL
     ),
@@ -152,7 +161,7 @@ spark.sql(
           ) * COALESCE(d.avg_daily_revenue, 0),
           2
         ) AS revenue_at_risk
-      FROM `{CATALOG}`.`silver`.`inventory` i
+      FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`inventory` i
       LEFT JOIN demand d
         ON i.store_id = d.store_id
        AND i.product_id = d.product_id
@@ -195,7 +204,7 @@ spark.sql(
 
 spark.sql(
     f"""
-    CREATE TABLE IF NOT EXISTS `{CATALOG}`.`ops`.`action_tasks` (
+    CREATE TABLE IF NOT EXISTS `{CATALOG}`.`{OPS_SCHEMA}`.`action_tasks` (
       action_id STRING NOT NULL COMMENT 'Identificador UUID de la decisión',
       alert_id STRING NOT NULL COMMENT 'Alerta Gold que originó la acción',
       decision_type STRING NOT NULL COMMENT 'APPROVE_REPLENISHMENT, INVESTIGATE o DISMISS',
@@ -225,7 +234,7 @@ spark.sql(
 
 spark.sql(
     f"""
-    CREATE OR REPLACE VIEW `{CATALOG}`.`gold`.`current_actions`
+    CREATE OR REPLACE VIEW `{CATALOG}`.`{GOLD_SCHEMA}`.`current_actions`
     COMMENT 'Decisiones operativas para consulta en Genie'
     AS
     SELECT
@@ -250,7 +259,7 @@ spark.sql(
           THEN true
         ELSE false
       END AS is_overdue
-    FROM `{CATALOG}`.`ops`.`action_tasks`
+    FROM `{CATALOG}`.`{OPS_SCHEMA}`.`action_tasks`
     """
 )
 
@@ -266,7 +275,7 @@ spark.sql(
 
 spark.sql(
     f"""
-    CREATE OR REPLACE VIEW `{CATALOG}`.`gold`.`data_quality_summary`
+    CREATE OR REPLACE VIEW `{CATALOG}`.`{GOLD_SCHEMA}`.`data_quality_summary`
     COMMENT 'Resumen de reglas de calidad para usuarios de negocio'
     AS
     SELECT
@@ -276,7 +285,7 @@ spark.sql(
       total_rows,
       ROUND(pass_rate * 100, 3) AS pass_rate_pct,
       measured_at
-    FROM `{CATALOG}`.`silver`.`data_quality_metrics`
+    FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`data_quality_metrics`
     """
 )
 
@@ -292,14 +301,14 @@ spark.sql(
 # COMMAND ----------
 
 metric_view_sql = f"""
-CREATE OR REPLACE VIEW `{CATALOG}`.`gold`.`retail_performance_metrics`
+CREATE OR REPLACE VIEW `{CATALOG}`.`{GOLD_SCHEMA}`.`retail_performance_metrics`
 WITH METRICS
 LANGUAGE YAML
 COMMENT 'Capa semántica de desempeño comercial para Pulso Retail'
 AS $$
 version: 1.1
 comment: "Métricas certificadas de venta para el workshop Pulso Retail"
-source: {CATALOG}.gold.sales_daily
+source: {CATALOG}.{GOLD_SCHEMA}.sales_daily
 fields:
   - name: event_date
     expr: source.event_date
@@ -391,10 +400,10 @@ spark.sql(metric_view_sql)
 
 if OPTIMIZE_TABLES:
     for table in (
-        f"`{CATALOG}`.`bronze`.`sales_events`",
-        f"`{CATALOG}`.`silver`.`sales`",
-        f"`{CATALOG}`.`gold`.`sales_daily`",
-        f"`{CATALOG}`.`gold`.`decision_queue`",
+        f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`",
+        f"`{CATALOG}`.`{SILVER_SCHEMA}`.`sales`",
+        f"`{CATALOG}`.`{GOLD_SCHEMA}`.`sales_daily`",
+        f"`{CATALOG}`.`{GOLD_SCHEMA}`.`decision_queue`",
     ):
         print(f"Optimizando {table}")
         spark.sql(f"OPTIMIZE {table}")
@@ -412,7 +421,7 @@ display(
         SELECT priority, COUNT(*) AS alerts,
                ROUND(SUM(revenue_at_risk), 2) AS revenue_at_risk,
                SUM(recommended_replenishment_units) AS recommended_units
-        FROM `{CATALOG}`.`gold`.`decision_queue`
+        FROM `{CATALOG}`.`{GOLD_SCHEMA}`.`decision_queue`
         GROUP BY priority
         ORDER BY CASE priority
           WHEN 'CRITICAL' THEN 1
@@ -432,7 +441,7 @@ display(
           MEASURE(net_revenue) AS net_revenue,
           MEASURE(gross_margin) AS gross_margin,
           MEASURE(units_sold) AS units_sold
-        FROM `{CATALOG}`.`gold`.`retail_performance_metrics`
+        FROM `{CATALOG}`.`{GOLD_SCHEMA}`.`retail_performance_metrics`
         GROUP BY ALL
         ORDER BY net_revenue DESC
         LIMIT 12

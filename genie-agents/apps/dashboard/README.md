@@ -22,11 +22,11 @@ Un dashboard AI/BI construido **100% con Genie / lenguaje natural**, que:
 
 Reemplaza `<catalog>` por tu catálogo de las notebooks 00–04:
 
-- `<catalog>.gold.retail_performance_metrics` — metric view certificada (ingreso neto, margen bruto, unidades).
-- `<catalog>.gold.decision_queue` — alertas priorizadas e ingreso en riesgo.
-- `<catalog>.gold.current_actions` — decisiones y tareas (write-back de la App).
-- `<catalog>.gold.data_quality_summary` — calidad por regla.
-- `<catalog>.gold.sales_daily` — detalle diario para tendencias.
+- `<catalog>.gold_<id>.retail_performance_metrics` — metric view certificada (ingreso neto, margen bruto, unidades).
+- `<catalog>.gold_<id>.decision_queue` — alertas priorizadas e ingreso en riesgo.
+- `<catalog>.gold_<id>.current_actions` — decisiones y tareas (write-back de la App).
+- `<catalog>.gold_<id>.data_quality_summary` — calidad por regla.
+- `<catalog>.gold_<id>.sales_daily` — detalle diario para tendencias.
 
 ## Cómo usarlo
 
@@ -61,16 +61,16 @@ de moneda compacto (por ejemplo, USD 2.4M). Los periodos son explícitos:
 usa los últimos 30 días salvo que el widget indique otra cosa.
 
 FUENTES DE DATOS (usa solo estas, no inventes tablas ni columnas)
-- <catalog>.gold.retail_performance_metrics (metric view: MEASURE(net_revenue),
+- <catalog>.gold_<id>.retail_performance_metrics (metric view: MEASURE(net_revenue),
   MEASURE(gross_margin), MEASURE(units_sold); dimensiones: event_date, region,
   channel, category)
-- <catalog>.gold.decision_queue (priority, region, store_name, sku, category,
+- <catalog>.gold_<id>.decision_queue (priority, region, store_name, sku, category,
   days_of_cover, lead_time_days, revenue_at_risk, recommended_replenishment_units)
-- <catalog>.gold.current_actions (created_at, decision_type, status, assignee,
+- <catalog>.gold_<id>.current_actions (created_at, decision_type, status, assignee,
   due_at, is_overdue, priority, store_name, sku, recommended_units)
-- <catalog>.gold.data_quality_summary (rule_id, rule_description, failed_rows,
+- <catalog>.gold_<id>.data_quality_summary (rule_id, rule_description, failed_rows,
   total_rows, pass_rate_pct)
-- <catalog>.gold.sales_daily (detalle diario para tendencia)
+- <catalog>.gold_<id>.sales_daily (detalle diario para tendencia)
 
 LAYOUT (de arriba hacia abajo, con jerarquía visual clara)
 1. Fila de 4 KPIs grandes con número principal, etiqueta y micro-tendencia
@@ -120,7 +120,7 @@ REGLAS
   dimensión (region, category, channel, event_date), agrega la dimensión al
   SELECT y usa GROUP BY ALL. Ejemplo:
     SELECT region, MEASURE(net_revenue) AS net_revenue
-    FROM <catalog>.gold.retail_performance_metrics
+    FROM <catalog>.gold_<id>.retail_performance_metrics
     WHERE event_date >= date_sub(current_date(), 29)
     GROUP BY ALL
     ORDER BY net_revenue DESC
@@ -150,7 +150,7 @@ Casi siempre es la **metric view** consultada con `SUM()` en vez de
 
 > Edita el dataset que falla usando `MEASURE(net_revenue)`,
 > `MEASURE(gross_margin)`, `MEASURE(units_sold)` sobre
-> `<catalog>.gold.retail_performance_metrics`, con `GROUP BY ALL` si hay
+> `<catalog>.gold_<id>.retail_performance_metrics`, con `GROUP BY ALL` si hay
 > dimensión. No elimines ningún dataset ni tabla.
 
 Borrar un *dataset* del dashboard **no** afecta tus tablas ni la metric view en

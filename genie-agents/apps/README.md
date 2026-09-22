@@ -69,7 +69,8 @@ utilizan Genie y la aplicación.
 Completar [PREWORK.md](PREWORK.md). En particular:
 
 - Usar un workspace DEV o QA, no producción.
-- Definir un catálogo único por participante o equipo.
+- Definir un catálogo compartido; cada participante usará schemas con su
+  `participant_id`.
 - Tener cluster UC y SQL warehouse disponibles.
 - Confirmar acceso a Genie y Databricks Apps.
 
@@ -77,7 +78,7 @@ Completar [PREWORK.md](PREWORK.md). En particular:
 
 Genie y las consultas analíticas son de lectura. La escritura se realiza por
 una ruta explícita de la App, validada y parametrizada, únicamente sobre
-`ops.action_tasks`. Ningún texto libre generado por el modelo se ejecuta como
+`ops_<id>.action_tasks`. Ningún texto libre generado por el modelo se ejecuta como
 SQL.
 
 ## Estado

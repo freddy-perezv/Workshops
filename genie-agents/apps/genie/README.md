@@ -22,13 +22,14 @@ En AI/BI Genie, crea un Space:
 
 ## 2. Agregar datos
 
-Reemplaza `<catalog>` por el catálogo utilizado en las notebooks y agrega:
+Reemplaza `<catalog>` por el catálogo compartido y `<id>` por el mismo
+`participant_id` utilizado en las notebooks. Agrega:
 
-1. `<catalog>.gold.retail_performance_metrics`
-2. `<catalog>.gold.decision_queue`
-3. `<catalog>.gold.current_actions`
-4. `<catalog>.gold.data_quality_summary`
-5. `<catalog>.gold.sales_daily`
+1. `<catalog>.gold_<id>.retail_performance_metrics`
+2. `<catalog>.gold_<id>.decision_queue`
+3. `<catalog>.gold_<id>.current_actions`
+4. `<catalog>.gold_<id>.data_quality_summary`
+5. `<catalog>.gold_<id>.sales_daily`
 
 La metric view debe ser la fuente principal para desempeño comercial.
 `sales_daily` se incluye para preguntas que necesiten detalle no expuesto por la
@@ -58,7 +59,8 @@ Agrega al menos estas preguntas visibles:
 ## 5. Agregar consultas verificadas
 
 Usa [`verified-queries.sql`](verified-queries.sql). Cada bloque contiene la
-pregunta y el SQL de referencia. Reemplaza `<catalog>` antes de copiarlo.
+pregunta y el SQL de referencia. Reemplaza `<catalog>` y `<gold_schema>` (por
+ejemplo, `gold_freddy`) antes de copiarlo.
 
 No es necesario registrar todos los bloques durante la sesión: agrega cuatro
 como mínimo y deja el resto como material de continuidad.

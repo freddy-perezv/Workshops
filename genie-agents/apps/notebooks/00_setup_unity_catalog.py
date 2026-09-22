@@ -8,12 +8,13 @@
 # MAGIC
 # MAGIC **Objetivo:** crear un espacio aislado y gobernado para el laboratorio.
 # MAGIC
-# MAGIC Cada participante trabajará en un catálogo propio con cuatro schemas:
+# MAGIC Todos pueden compartir el mismo catálogo. Cada participante trabajará
+# MAGIC en cuatro schemas aislados, derivados de un único identificador:
 # MAGIC
-# MAGIC - `bronze`: datos raw, tal como llegan.
-# MAGIC - `silver`: datos validados y normalizados.
-# MAGIC - `gold`: tablas y métricas para Genie y la App.
-# MAGIC - `ops`: decisiones y tareas generadas por la App.
+# MAGIC - `bronze_<participante>`: datos raw, tal como llegan.
+# MAGIC - `silver_<participante>`: datos validados y normalizados.
+# MAGIC - `gold_<participante>`: tablas y métricas para Genie y la App.
+# MAGIC - `ops_<participante>`: decisiones y tareas generadas por la App.
 # MAGIC
 # MAGIC También se crea un Unity Catalog Volume para simular una zona de
 # MAGIC aterrizaje. El catálogo permite aplicar permisos y trazabilidad desde
@@ -26,21 +27,24 @@
 # MAGIC %md
 # MAGIC ## 1. Parámetros
 # MAGIC
-# MAGIC Cambia `catalog_name` por un nombre único. Solo se permiten letras,
-# MAGIC números y guion bajo. Si la empresa ya asignó un catálogo, selecciona
-# MAGIC `create_catalog = false`.
+# MAGIC Cambia únicamente `participant_id` por tu nombre o identificador, usando
+# MAGIC letras, números y guion bajo. Por ejemplo, `freddy` generará
+# MAGIC `bronze_freddy`, `silver_freddy`, `gold_freddy` y `ops_freddy`.
+# MAGIC El instructor define el catálogo compartido.
 
 # COMMAND ----------
 
 dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "01. Catálogo")
-dbutils.widgets.dropdown("create_catalog", "true", ["true", "false"], "02. Crear catálogo")
-dbutils.widgets.dropdown("scale", "M", ["S", "M", "L"], "03. Escala")
+dbutils.widgets.text("participant_id", "", "02. Tu identificador")
+dbutils.widgets.dropdown("create_catalog", "false", ["true", "false"], "03. Crear catálogo")
+dbutils.widgets.dropdown("scale", "M", ["S", "M", "L"], "04. Escala")
 
 # COMMAND ----------
 
 import re
 
 CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
+PARTICIPANT_ID = dbutils.widgets.get("participant_id").strip().lower()
 CREATE_CATALOG = dbutils.widgets.get("create_catalog") == "true"
 SCALE = dbutils.widgets.get("scale")
 
@@ -49,6 +53,17 @@ if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
         "catalog_name debe iniciar con letra, contener solo a-z, 0-9 o _, "
         "y tener entre 3 y 63 caracteres."
     )
+
+if not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", PARTICIPANT_ID):
+    raise ValueError(
+        "participant_id debe iniciar con letra, contener solo a-z, 0-9 o _, "
+        "y tener entre 2 y 31 caracteres. Ejemplo: freddy"
+    )
+
+BRONZE_SCHEMA = f"bronze_{PARTICIPANT_ID}"
+SILVER_SCHEMA = f"silver_{PARTICIPANT_ID}"
+GOLD_SCHEMA = f"gold_{PARTICIPANT_ID}"
+OPS_SCHEMA = f"ops_{PARTICIPANT_ID}"
 
 SCALE_ROWS = {
     "S": 500_000,
@@ -62,6 +77,7 @@ spark.conf.set("spark.sql.session.timeZone", "UTC")
 
 print(f"Usuario: {CURRENT_USER}")
 print(f"Catálogo: {CATALOG}")
+print(f"Schemas: {BRONZE_SCHEMA}, {SILVER_SCHEMA}, {GOLD_SCHEMA}, {OPS_SCHEMA}")
 print(f"Escala: {SCALE} ({EVENT_ROWS:,} eventos)")
 print("Zona horaria de negocio: UTC")
 
@@ -126,7 +142,7 @@ except Exception:
 # --- Paso 3: Crear schemas ---
 spark.sql(f"USE CATALOG `{CATALOG}`")
 
-for schema in ("bronze", "silver", "gold", "ops"):
+for schema in (BRONZE_SCHEMA, SILVER_SCHEMA, GOLD_SCHEMA, OPS_SCHEMA):
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{CATALOG}`.`{schema}`")
     print(f"  Schema '{schema}' ✔")
 
@@ -146,12 +162,12 @@ print(f"\n✅ Catálogo '{CATALOG}' y schemas configurados correctamente.")
 
 spark.sql(
     f"""
-    CREATE VOLUME IF NOT EXISTS `{CATALOG}`.`bronze`.`landing`
+    CREATE VOLUME IF NOT EXISTS `{CATALOG}`.`{BRONZE_SCHEMA}`.`landing`
     COMMENT 'Archivos raw del laboratorio Pulso Retail'
     """
 )
 
-VOLUME_PATH = f"/Volumes/{CATALOG}/bronze/landing"
+VOLUME_PATH = f"/Volumes/{CATALOG}/{BRONZE_SCHEMA}/landing"
 dbutils.fs.mkdirs(f"{VOLUME_PATH}/sales_events")
 
 print(f"Volume listo: {VOLUME_PATH}")
@@ -169,7 +185,7 @@ print(f"Volume listo: {VOLUME_PATH}")
 
 spark.sql(
     f"""
-    CREATE TABLE IF NOT EXISTS `{CATALOG}`.`ops`.`workshop_config` (
+    CREATE TABLE IF NOT EXISTS `{CATALOG}`.`{OPS_SCHEMA}`.`workshop_config` (
       catalog_name STRING NOT NULL,
       participant STRING NOT NULL,
       scale STRING NOT NULL,
@@ -181,10 +197,10 @@ spark.sql(
     """
 )
 
-spark.sql(f"DELETE FROM `{CATALOG}`.`ops`.`workshop_config`")
+spark.sql(f"DELETE FROM `{CATALOG}`.`{OPS_SCHEMA}`.`workshop_config`")
 spark.sql(
     f"""
-    INSERT INTO `{CATALOG}`.`ops`.`workshop_config`
+    INSERT INTO `{CATALOG}`.`{OPS_SCHEMA}`.`workshop_config`
     VALUES ('{CATALOG}', current_user(), '{SCALE}', {EVENT_ROWS}, current_timestamp())
     """
 )
@@ -205,13 +221,15 @@ display(
         f"""
         SELECT schema_name
         FROM `{CATALOG}`.information_schema.schemata
-        WHERE schema_name IN ('bronze', 'silver', 'gold', 'ops')
+        WHERE schema_name IN (
+          '{BRONZE_SCHEMA}', '{SILVER_SCHEMA}', '{GOLD_SCHEMA}', '{OPS_SCHEMA}'
+        )
         ORDER BY schema_name
         """
     )
 )
 
-display(spark.sql(f"SHOW VOLUMES IN `{CATALOG}`.`bronze`"))
+display(spark.sql(f"SHOW VOLUMES IN `{CATALOG}`.`{BRONZE_SCHEMA}`"))
 
 # COMMAND ----------
 
