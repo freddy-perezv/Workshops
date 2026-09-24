@@ -22,19 +22,19 @@ function WorkshopApp() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="Navegación principal">
         <div className="brand-mark">
-          <span>PR</span>
+          <span>RT</span>
         </div>
         <nav>
           <span
             className="nav-button nav-button--active"
-            aria-label="Centro de decisiones"
+            aria-label="Radar tributario"
             aria-current="page"
           >
             <LayoutDashboard size={20} />
           </span>
         </nav>
         <div className="sidebar__footer">
-          <span>AR</span>
+          <span>AT</span>
         </div>
       </aside>
 
@@ -42,8 +42,8 @@ function WorkshopApp() {
         <header className="topbar">
           <div className="topbar__title">
             <div>
-              <p>Pulso Retail</p>
-              <span>Centro de decisiones de inventario</span>
+              <p>Radar Tributario</p>
+              <span>Triage de señales de riesgo</span>
             </div>
           </div>
           <div className="topbar__actions">
@@ -55,7 +55,7 @@ function WorkshopApp() {
               <span>{data.identity.slice(0, 2).toUpperCase()}</span>
               <div>
                 <strong>{data.identity.split('@')[0]}</strong>
-                <small>Responsable de operaciones</small>
+                <small>Analista tributario</small>
               </div>
             </div>
           </div>
@@ -64,11 +64,12 @@ function WorkshopApp() {
         <main>
           <section className="hero">
             <div>
-              <p className="eyebrow">Inteligencia accionable para retail</p>
-              <h1>De una señal de riesgo a una decisión auditable.</h1>
+              <p className="eyebrow">Priorización analítica y responsable</p>
+              <h1>Del dato tributario a una revisión focalizada.</h1>
               <p>
-                Prioriza inventario, consulta la evidencia con Genie y activa
-                una tarea sin salir de la experiencia.
+                Identifica una señal de riesgo, contrasta evidencia con Genie y
+                activa una tarea auditable. Una señal orienta el análisis; no
+                afirma fraude.
               </p>
             </div>
             <div className="hero__pulse">
@@ -96,8 +97,8 @@ function WorkshopApp() {
               <section className="panel trend-panel">
                 <div className="panel__header">
                   <div>
-                    <p className="eyebrow">Desempeño certificado</p>
-                    <h2>Ventas y margen</h2>
+                    <p className="eyebrow">Panorama de 30 días</p>
+                    <h2>Ventas declaradas e impuesto</h2>
                   </div>
                   <span className="semantic-badge">Metric View</span>
                 </div>

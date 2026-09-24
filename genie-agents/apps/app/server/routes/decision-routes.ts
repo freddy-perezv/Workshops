@@ -20,8 +20,8 @@ interface WorkshopAppKit {
 const CreateActionBody = z.object({
   alertId: z.string().length(64),
   decisionType: z.enum([
-    'APPROVE_REPLENISHMENT',
-    'INVESTIGATE',
+    'OPEN_INVESTIGATION',
+    'REQUEST_CLARIFICATION',
     'DISMISS',
   ]),
   assignee: z.string().trim().email().max(254),
@@ -51,8 +51,8 @@ function requestActor(headers: IncomingHttpHeaders): string {
 }
 
 function slaHours(decisionType: z.infer<typeof CreateActionBody>['decisionType']) {
-  if (decisionType === 'APPROVE_REPLENISHMENT') return 24;
-  if (decisionType === 'INVESTIGATE') return 8;
+  if (decisionType === 'OPEN_INVESTIGATION') return 24;
+  if (decisionType === 'REQUEST_CLARIFICATION') return 72;
   return 72;
 }
 
@@ -70,7 +70,7 @@ export function setupDecisionRoutes(appkit: WorkshopAppKit) {
           actionsTable: requiredTable('OPS_ACTIONS_TABLE'),
         });
       } catch (error) {
-        console.error('[pulso-retail] Invalid table configuration', error);
+        console.error('[radar-tributario] Invalid table configuration', error);
         res.status(503).json({
           error:
             'La App no tiene configurados sus recursos de Unity Catalog.',
@@ -105,15 +105,10 @@ export function setupDecisionRoutes(appkit: WorkshopAppKit) {
               :assignee AS assignee,
               :notes AS notes,
               q.priority,
-              q.store_id,
-              q.store_name,
-              q.product_id,
-              q.sku,
-              CASE
-                WHEN :decision_type = 'APPROVE_REPLENISHMENT'
-                  THEN q.recommended_replenishment_units
-                ELSE 0
-              END AS recommended_units,
+              q.taxpayer_id,
+              q.taxpayer_name,
+              q.ruc,
+              q.risk_score,
               :actor AS created_by,
               current_timestamp() AS created_at,
               timestampadd(HOUR, :sla_hours, current_timestamp()) AS due_at,
@@ -130,20 +125,23 @@ export function setupDecisionRoutes(appkit: WorkshopAppKit) {
             target.assignee = source.assignee,
             target.notes = source.notes,
             target.priority = source.priority,
-            target.recommended_units = source.recommended_units,
+            target.taxpayer_id = source.taxpayer_id,
+            target.taxpayer_name = source.taxpayer_name,
+            target.ruc = source.ruc,
+            target.risk_score = source.risk_score,
             target.created_by = source.created_by,
             target.created_at = source.created_at,
             target.due_at = source.due_at,
             target.updated_at = source.updated_at
           WHEN NOT MATCHED THEN INSERT (
             action_id, alert_id, decision_type, status, assignee, notes,
-            priority, store_id, store_name, product_id, sku,
-            recommended_units, created_by, created_at, due_at, updated_at
+            priority, taxpayer_id, taxpayer_name, ruc, risk_score,
+            created_by, created_at, due_at, updated_at
           ) VALUES (
             source.action_id, source.alert_id, source.decision_type,
             source.status, source.assignee, source.notes, source.priority,
-            source.store_id, source.store_name, source.product_id, source.sku,
-            source.recommended_units, source.created_by, source.created_at,
+            source.taxpayer_id, source.taxpayer_name, source.ruc,
+            source.risk_score, source.created_by, source.created_at,
             source.due_at, source.updated_at
           )
         `;
@@ -167,7 +165,7 @@ export function setupDecisionRoutes(appkit: WorkshopAppKit) {
             'Decisión registrada. La tarea ya está disponible para seguimiento y para Genie.',
         });
       } catch (error) {
-        console.error('[pulso-retail] Failed to create action', error);
+        console.error('[radar-tributario] Failed to create action', error);
         res.status(500).json({
           error:
             'No fue posible registrar la decisión. Verifica warehouse y permisos MODIFY.',
@@ -197,7 +195,7 @@ export function setupDecisionRoutes(appkit: WorkshopAppKit) {
         });
         res.json({ actionId: actionId.data, status: body.data.status });
       } catch (error) {
-        console.error('[pulso-retail] Failed to update action', error);
+        console.error('[radar-tributario] Failed to update action', error);
         res.status(500).json({ error: 'No fue posible actualizar la tarea.' });
       }
     });

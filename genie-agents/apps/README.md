@@ -1,92 +1,52 @@
-# Workshop: Genie Agents + Databricks Apps
+# Radar Tributario · Workshop hands-on
 
-Laboratorio hands-on de tres horas para construir una solución de decisiones de
-retail de extremo a extremo sobre Databricks.
+Laboratorio en español para construir una experiencia de priorización tributaria
+explicable sobre Databricks. Está pensado para una administración tributaria
+similar a SUNAT y es **independiente del MVP SIRE**: no replica sus flujos,
+interfaces ni alcance.
 
-El caso, **Pulso Retail**, ayuda a un responsable de operaciones a
-detectar sucursales y productos con riesgo de quiebre de stock, entender la
-situación con Genie y convertir el análisis en una acción auditable desde una
-Databricks App.
+> Todos los contribuyentes, RUC, declaraciones, comprobantes, montos y acciones
+> son sintéticos. Las salidas son señales para revisión humana; nunca prueban
+> fraude, evasión ni incumplimiento.
 
-## Resultado del laboratorio
+## Qué construye cada participante
 
-Cada participante:
+1. Capas gobernadas Bronze, Silver, Gold y ops en Unity Catalog.
+2. Datos tributarios sintéticos con errores reproducibles.
+3. Calidad, cuarentena y recuperación controlada de un RUC sintético.
+4. `taxpayer_activity_daily`, `risk_queue`, `current_actions`,
+   `data_quality_summary` y la metric view `tax_risk_metrics`.
+5. Dos experiencias Genie: baseline sin contexto y enriquecida con
+   instrucciones y consultas verificadas.
+6. Una App para revisar señales y registrar decisiones humanas.
+7. Un dashboard agregado complementario, no una copia de la cola operativa.
 
-1. Crea objetos gobernados en Unity Catalog.
-2. Genera e ingiere datos sintéticos a escala con errores intencionales.
-3. Implementa Bronze, Silver, Gold, reglas de calidad y cuarentena.
-4. Publica una metric view como capa semántica.
-5. Configura y evalúa un Genie Space con reglas de negocio.
-6. Ejecuta una Databricks App con indicadores, Genie y write-back.
-7. Registra una decisión y comprueba que Genie puede consultarla.
-8. Genera un dashboard ejecutivo con Genie (Lab 3).
+## Escalas rápidas
 
-## Estructura
+- `S`: ~50 mil comprobantes, para prueba técnica.
+- `M`: ~250 mil, recomendado para el workshop.
+- `L`: ~1 millón, para compute validado previamente.
 
-```text
-.
-├── notebooks/             Notebooks Databricks Source, en orden de ejecución
-├── genie/                 Instrucciones, preguntas verificadas y evaluación
-├── app/                   Databricks App (AppKit + React + TypeScript)
-├── dashboard/             Lab 3: prompt para dashboard AI/BI con Genie
-├── docs/                  Arquitectura, guía del instructor y troubleshooting
-├── PREWORK.md             Requisitos y validación previa
-└── Agenda Workshop...     Agenda original
-```
+## Orden
 
-## Orden de ejecución
+1. Completar [PREWORK.md](PREWORK.md).
+2. Ejecutar `notebooks/00_setup_unity_catalog.py`.
+3. Ejecutar `01_ingesta_bronze.py`, `02_calidad_cuarentena_silver.py` y
+   `03_gold_semantic_layer.py`.
+4. Comparar las dos experiencias de [genie/README.md](genie/README.md).
+5. Conectar la App siguiendo `app/README.md` sin modificar su código en este
+   rediseño.
+6. Registrar una acción y ejecutar `04_validacion_writeback.py`.
+7. Crear el dashboard con [dashboard/README.md](dashboard/README.md).
 
-| Paso | Recurso | Tiempo objetivo | Resultado |
-|---|---|---:|---|
-| 0 | `notebooks/00_setup_unity_catalog.py` | 5 min | Catálogo y schemas |
-| 1 | `notebooks/01_ingesta_bronze.py` | 10–15 min | Datos raw y Bronze |
-| 2 | `notebooks/02_calidad_cuarentena_silver.py` | 10 min | Silver y cuarentena |
-| 3 | `notebooks/03_gold_semantic_layer.py` | 10 min | Gold, cola y metric view |
-| 4 | `genie/README.md` | 35 min | Genie Space evaluado |
-| 5 | `app/README.md` | 45 min | App con decisión persistida |
-| 6 | `notebooks/04_validacion_writeback.py` | 5 min | Ciclo cerrado validado |
-| 7 | `dashboard/README.md` | 20 min | Dashboard AI/BI generado con Genie |
+## Contrato de decisión
 
-> Los tiempos de las notebooks se mantienen cortos mediante código preparado.
-> Los participantes ejecutan y validan cada etapa. La agenda completa de 180
-> minutos, incluidas bienvenida, pausa, evaluación y readout, está en
-> `docs/INSTRUCTOR_GUIDE.md`.
+Las decisiones permitidas son `OPEN_INVESTIGATION`,
+`REQUEST_CLARIFICATION` y `DISMISS`. Genie analiza; solo la App escribe en
+`ops_<id>.action_tasks`. Toda acción conserva identidad, responsable, notas,
+prioridad, contribuyente, puntaje, autor y timestamps.
 
-## Escala de datos
-
-La notebook de ingesta ofrece tres tamaños:
-
-- `S`: 500 mil eventos, para prueba técnica.
-- `M`: 5 millones de eventos, recomendado para el workshop.
-- `L`: 20 millones de eventos, para equipos con compute robusto.
-
-El volumen no es trabajo artificial: genera lecturas, escrituras, joins,
-agregaciones, controles de calidad y optimización sobre el mismo flujo que
-utilizan Genie y la aplicación.
-
-## Antes de ejecutar
-
-Completar [PREWORK.md](PREWORK.md). En particular:
-
-- Usar un workspace DEV o QA, no producción.
-- Definir un catálogo compartido; cada participante usará schemas con su
-  `participant_id`.
-- Tener cluster UC y SQL warehouse disponibles.
-- Confirmar acceso a Genie y Databricks Apps.
-
-## Principio de seguridad
-
-Genie y las consultas analíticas son de lectura. La escritura se realiza por
-una ruta explícita de la App, validada y parametrizada, únicamente sobre
-`ops_<id>.action_tasks`. Ningún texto libre generado por el modelo se ejecuta como
-SQL.
-
-## Estado
-
-Esta carpeta es la versión local para revisión. No despliega ni modifica ningún
-workspace. El despliegue se realizará solamente después de validar el contenido.
-
-Validación local sin Databricks:
+## Validación local
 
 ```bash
 python3 scripts/validate_content.py

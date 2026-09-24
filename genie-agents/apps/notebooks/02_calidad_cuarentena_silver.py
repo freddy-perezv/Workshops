@@ -1,22 +1,15 @@
 # Databricks notebook source
-# /// script
-# [tool.databricks.environment]
-# environment_version = "5"
-# ///
 # MAGIC %md
-# MAGIC # 02 · Data Quality, cuarentena y capa Silver
+# MAGIC # Radar Tributario · 02 · Calidad, cuarentena y Silver
 # MAGIC
-# MAGIC **Objetivo:** convertir datos raw en información confiable sin ocultar
-# MAGIC los errores.
-# MAGIC
-# MAGIC Cada fila se evalúa contra reglas explícitas. Las filas válidas pasan a
-# MAGIC Silver; las demás quedan en cuarentena con sus causas. Después
-# MAGIC corregimos un caso recuperable y lo reingresamos de forma auditable.
+# MAGIC Las reglas hacen visibles RUC inválidos, contribuyentes desconocidos,
+# MAGIC duplicados y montos negativos/imposibles. Solo se recupera un problema
+# MAGIC seguro: reconstruir el RUC sintético desde el identificador generado.
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "workshop_retail_equipo_01", "Catálogo")
-dbutils.widgets.text("participant_id", "", "Tu identificador")
+dbutils.widgets.text("catalog_name", "radar_tributario_workshop", "Catálogo")
+dbutils.widgets.text("participant_id", "", "Identificador")
 
 # COMMAND ----------
 
@@ -26,397 +19,154 @@ from pyspark.sql import functions as F
 CATALOG = dbutils.widgets.get("catalog_name").strip().lower()
 PARTICIPANT_ID = dbutils.widgets.get("participant_id").strip().lower()
 if not re.fullmatch(r"[a-z][a-z0-9_]{2,62}", CATALOG):
-    raise ValueError("Nombre de catálogo inválido.")
+    raise ValueError("Catálogo inválido")
 if not re.fullmatch(r"[a-z][a-z0-9_]{1,30}", PARTICIPANT_ID):
-    raise ValueError("Identificador inválido. Usa solo a-z, 0-9 o _.")
-
+    raise ValueError("Identificador inválido")
 BRONZE_SCHEMA = f"bronze_{PARTICIPANT_ID}"
 SILVER_SCHEMA = f"silver_{PARTICIPANT_ID}"
+spark.conf.set("spark.sql.session.timeZone", "America/Lima")
 
-spark.conf.set("spark.sql.session.timeZone", "UTC")
-sales = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`").alias("s")
-stores = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`stores`").alias("st")
-products = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`products`").alias("p")
-inventory = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`inventory_snapshot`").alias("i")
+taxpayers = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`taxpayers`")
+documents = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`tax_documents`")
+filings = spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`tax_filings`")
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 1. Definir reglas de calidad
-# MAGIC
-# MAGIC Las reglas tienen identificadores estables. Así podemos medirlas,
-# MAGIC explicarlas al negocio y utilizarlas como evidencia durante una
-# MAGIC auditoría.
+def ruc_check_expr(column_name: str):
+    r = F.col(column_name)
+    weighted = sum(
+        F.substring(r, i + 1, 1).cast("int") * weight
+        for i, weight in enumerate([5, 4, 3, 2, 7, 6, 5, 4, 3, 2])
+    )
+    return F.pmod(11 - F.pmod(weighted, 11), 10)
+
+evaluated_taxpayers = (
+    taxpayers.withColumn(
+        "valid_ruc",
+        F.col("ruc").rlike(r"^\d{11}$")
+        & (F.substring("ruc", 11, 1).cast("int") == ruc_check_expr("ruc")),
+    )
+    .withColumn(
+        "dq_reasons",
+        F.when(~F.col("valid_ruc"), F.array(F.lit("DQ001_INVALID_RUC")))
+        .otherwise(F.expr("CAST(array() AS ARRAY<STRING>)")),
+    )
+)
+
+# La recuperación es segura solo porque taxpayer_id y RUC son sintéticos y
+# determinísticos dentro del workshop.
+recoverable = (
+    evaluated_taxpayers.filter(~F.col("valid_ruc"))
+    .withColumn("ruc10", F.concat(F.lit("20"), F.substring("taxpayer_id", 3, 8)))
+    .withColumn("ruc", F.concat("ruc10", ruc_check_expr("ruc10").cast("string")))
+    .drop("ruc10", "valid_ruc", "dq_reasons")
+    .withColumn("quality_status", F.lit("REPROCESSED_SYNTHETIC_RUC"))
+)
+valid_taxpayers = (
+    evaluated_taxpayers.filter("valid_ruc")
+    .drop("valid_ruc", "dq_reasons")
+    .withColumn("quality_status", F.lit("ORIGINAL_VALID"))
+)
+silver_taxpayers = valid_taxpayers.unionByName(recoverable)
+quarantine_taxpayers = (
+    evaluated_taxpayers.filter(~F.col("valid_ruc"))
+    .withColumn("resolution_status", F.lit("REPROCESSED"))
+    .withColumn("resolution_note", F.lit("RUC sintético reconstruido desde taxpayer_id"))
+    .withColumn("quarantined_at", F.current_timestamp())
+)
 
 # COMMAND ----------
 
 duplicate_ids = (
-    spark.table(f"`{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`")
-    .groupBy("event_id")
-    .count()
-    .filter(F.col("count") > 1)
-    .select(F.col("event_id").alias("duplicate_event_id"))
-    .withColumn("is_duplicate", F.lit(True))
+    documents.groupBy("document_id").count().filter("count > 1")
+    .select("document_id").withColumn("is_duplicate", F.lit(True))
 )
-
-joined_sales = sales.join(
-    stores.select(
-        F.col("store_id").alias("master_store_id"),
-        F.col("store_name"),
-        F.col("region").alias("master_region"),
-        F.col("store_format"),
-    ),
-    F.col("s.store_id") == F.col("master_store_id"),
-    "left",
-).join(
-    products.select(
-        F.col("product_id").alias("master_product_id"),
-        F.col("sku"),
-        F.col("product_name"),
-        F.col("category"),
-        F.col("target_margin_pct"),
-    ),
-    F.col("s.product_id") == F.col("master_product_id"),
-    "left",
-).join(
-    duplicate_ids,
-    F.col("s.event_id") == F.col("duplicate_event_id"),
-    "left",
-)
-
-rule_results = [
-    F.when(F.col("event_id").isNull(), "DQ001_EVENT_ID_MISSING"),
-    F.when(F.col("is_duplicate"), "DQ009_EVENT_ID_DUPLICATED"),
-    F.when(F.col("master_store_id").isNull(), "DQ002_STORE_UNKNOWN"),
-    F.when(F.col("master_product_id").isNull(), "DQ003_PRODUCT_UNKNOWN"),
-    F.when(
-        F.col("quantity").isNull()
-        | (F.col("quantity") <= 0)
-        | (F.col("quantity") > 100),
-        "DQ004_QUANTITY_OUT_OF_RANGE",
-    ),
-    F.when(
-        F.col("unit_price").isNull() | (F.col("unit_price") <= 0),
-        "DQ005_PRICE_INVALID",
-    ),
-    F.when(
-        F.col("discount_pct").isNull()
-        | (F.col("discount_pct") < 0)
-        | (F.col("discount_pct") > 0.80),
-        "DQ006_DISCOUNT_INVALID",
-    ),
-    F.when(F.col("reported_region").isNull(), "DQ007_REGION_MISSING"),
-    F.when(
-        F.col("reported_region").isNotNull()
-        & F.col("master_region").isNotNull()
-        & (F.col("reported_region") != F.col("master_region")),
-        "DQ008_REGION_MISMATCH",
-    ),
-]
-
-evaluated_sales = joined_sales.withColumn(
-    "dq_reasons",
-    F.filter(F.array(*rule_results), lambda reason: reason.isNotNull()),
-).withColumn("dq_passed", F.size("dq_reasons") == 0)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## 2. Separar válidos y cuarentena
-# MAGIC
-# MAGIC Cuarentena no significa “borrar”. Conservamos la fila, sus metadatos,
-# MAGIC las reglas incumplidas y el estado de resolución.
-
-# COMMAND ----------
-
-valid_sales = evaluated_sales.filter("dq_passed").select(
-    "event_id",
-    "event_ts",
-    "event_date",
-    F.col("s.store_id").alias("store_id"),
-    "store_name",
-    "master_region",
-    "store_format",
-    F.col("s.product_id").alias("product_id"),
-    "sku",
-    "product_name",
-    "category",
-    "quantity",
-    "unit_price",
-    "discount_pct",
-    "channel",
-    F.round(
-        F.col("quantity") * F.col("unit_price") * (1 - F.col("discount_pct")), 2
-    )
-    .cast("decimal(20,2)")
-    .alias("net_revenue"),
-    F.round(
-        F.col("quantity")
-        * F.col("unit_price")
-        * (1 - F.col("target_margin_pct")),
-        2,
-    )
-    .cast("decimal(20,2)")
-    .alias("estimated_cost"),
-    F.lit("ORIGINAL_VALID").alias("quality_status"),
-    "source_file",
-    "ingested_at",
-)
-
-quarantine_sales = (
-    evaluated_sales.filter("NOT dq_passed")
-    .select(
-        "event_id",
-        "event_ts",
-        "event_date",
-        F.col("s.store_id").alias("store_id"),
-        F.col("s.product_id").alias("product_id"),
-        "quantity",
-        "unit_price",
-        "discount_pct",
-        "channel",
-        "reported_region",
-        "master_region",
-        "dq_reasons",
-        "source_file",
-        "ingested_at",
-    )
-    .withColumn("quarantined_at", F.current_timestamp())
-    .withColumn("resolution_status", F.lit("PENDING"))
-    .withColumn("resolution_note", F.lit(None).cast("string"))
-)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## 3. Reprocesar un error recuperable
-# MAGIC
-# MAGIC Una región ausente puede completarse desde la dimensión maestra si
-# MAGIC la sucursal es válida y no existe otro error. No “arreglamos” precios,
-# MAGIC productos o cantidades sin una decisión de negocio.
-
-# COMMAND ----------
-
-recoverable = evaluated_sales.filter(
-    (F.size("dq_reasons") == 1)
-    & (F.array_contains("dq_reasons", "DQ007_REGION_MISSING"))
-)
-
-recovered_sales = recoverable.select(
-    "event_id",
-    "event_ts",
-    "event_date",
-    F.col("s.store_id").alias("store_id"),
-    "store_name",
-    "master_region",
-    "store_format",
-    F.col("s.product_id").alias("product_id"),
-    "sku",
-    "product_name",
-    "category",
-    "quantity",
-    "unit_price",
-    "discount_pct",
-    "channel",
-    F.round(
-        F.col("quantity") * F.col("unit_price") * (1 - F.col("discount_pct")), 2
-    )
-    .cast("decimal(20,2)")
-    .alias("net_revenue"),
-    F.round(
-        F.col("quantity")
-        * F.col("unit_price")
-        * (1 - F.col("target_margin_pct")),
-        2,
-    )
-    .cast("decimal(20,2)")
-    .alias("estimated_cost"),
-    F.lit("REPROCESSED_REGION").alias("quality_status"),
-    "source_file",
-    "ingested_at",
-)
-
-silver_sales = valid_sales.unionByName(recovered_sales)
-
-resolved_ids = recoverable.select("event_id").withColumn(
-    "resolved", F.lit(True)
-)
-quarantine_sales = (
-    quarantine_sales.join(resolved_ids, "event_id", "left")
-    .withColumn(
-        "resolution_status",
-        F.when(F.col("resolved"), "REPROCESSED").otherwise("PENDING"),
-    )
-    .withColumn(
-        "resolution_note",
-        F.when(
-            F.col("resolved"),
-            "Región completada desde la dimensión maestra de sucursales",
-        ),
-    )
-    .drop("resolved")
-)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## 4. Validar inventario
-# MAGIC
-# MAGIC El inventario negativo no se corrige automáticamente porque podría
-# MAGIC representar un problema físico o de integración. Se conserva en una
-# MAGIC cuarentena separada.
-
-# COMMAND ----------
-
-evaluated_inventory = (
-    inventory.join(
-        stores.select("store_id", "store_name", "region", "store_format"),
-        "store_id",
+evaluated_documents = (
+    documents.join(duplicate_ids, "document_id", "left")
+    .join(
+        silver_taxpayers.select("taxpayer_id", "taxpayer_name", "ruc", "segment",
+                                "region", "economic_activity", "taxpayer_status"),
+        "taxpayer_id",
         "left",
     )
-    .join(products.select("product_id", "sku", "product_name", "category"), "product_id")
     .withColumn(
         "dq_reasons",
         F.filter(
             F.array(
-                F.when(F.col("store_name").isNull(), "DQ101_STORE_UNKNOWN"),
-                F.when(F.col("sku").isNull(), "DQ102_PRODUCT_UNKNOWN"),
-                F.when(F.col("on_hand_units") < 0, "DQ103_NEGATIVE_ON_HAND"),
-                F.when(F.col("reorder_point") <= 0, "DQ104_REORDER_POINT_INVALID"),
-                F.when(
-                    ~F.col("lead_time_days").between(1, 60),
-                    "DQ105_LEAD_TIME_INVALID",
-                ),
+                F.when(F.col("taxpayer_name").isNull(), "DQ002_UNKNOWN_TAXPAYER"),
+                F.when(F.coalesce("is_duplicate", F.lit(False)), "DQ003_DUPLICATE_DOCUMENT"),
+                F.when(F.col("taxable_amount") < 0, "DQ004_NEGATIVE_AMOUNT"),
+                F.when(F.col("taxable_amount") > 100_000_000, "DQ005_IMPOSSIBLE_AMOUNT"),
+                F.when(F.col("tax_amount") < 0, "DQ006_NEGATIVE_TAX"),
             ),
-            lambda reason: reason.isNotNull(),
+            lambda x: x.isNotNull(),
         ),
     )
 )
-
-silver_inventory = evaluated_inventory.filter(F.size("dq_reasons") == 0).drop(
-    "dq_reasons"
+silver_documents = evaluated_documents.filter(F.size("dq_reasons") == 0).drop(
+    "dq_reasons", "is_duplicate"
 )
-quarantine_inventory = (
-    evaluated_inventory.filter(F.size("dq_reasons") > 0)
-    .withColumn("quarantined_at", F.current_timestamp())
+quarantine_documents = (
+    evaluated_documents.filter(F.size("dq_reasons") > 0)
     .withColumn("resolution_status", F.lit("PENDING"))
+    .withColumn("quarantined_at", F.current_timestamp())
 )
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## 5. Materializar tablas Delta Silver y cuarentena
+silver_filings = (
+    filings.join(
+        silver_taxpayers.select("taxpayer_id", "taxpayer_name", "ruc", "segment",
+                                "region", "economic_activity", "taxpayer_status"),
+        "taxpayer_id",
+        "inner",
+    )
+    .filter(
+        (F.col("declared_sales") >= 0)
+        & (F.col("assessed_tax") >= 0)
+        & (F.col("claimed_tax_credit") >= 0)
+    )
+)
 
 # COMMAND ----------
 
 for table_name, frame in {
-    "sales": silver_sales,
-    "inventory": silver_inventory,
-    "quarantine_sales": quarantine_sales,
-    "quarantine_inventory": quarantine_inventory,
+    "taxpayers": silver_taxpayers,
+    "tax_documents": silver_documents,
+    "tax_filings": silver_filings,
+    "quarantine_taxpayers": quarantine_taxpayers,
+    "quarantine_documents": quarantine_documents,
 }.items():
     (
-        frame.write.mode("overwrite")
-        .option("overwriteSchema", "true")
-        .format("delta")
-        .saveAsTable(f"`{CATALOG}`.`{SILVER_SCHEMA}`.`{table_name}`")
+        frame.write.mode("overwrite").option("overwriteSchema", "true")
+        .format("delta").saveAsTable(f"`{CATALOG}`.`{SILVER_SCHEMA}`.`{table_name}`")
     )
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## 6. Publicar métricas de calidad
-# MAGIC
-# MAGIC Una métrica agregada permite monitorear tendencia y establecer un
-# MAGIC contrato: el pipeline no solo produce datos, también demuestra su
-# MAGIC nivel de confianza.
-
-# COMMAND ----------
 
 rule_dictionary = spark.createDataFrame(
     [
-        ("DQ001_EVENT_ID_MISSING", "Evento sin identificador"),
-        ("DQ002_STORE_UNKNOWN", "Sucursal inexistente"),
-        ("DQ003_PRODUCT_UNKNOWN", "Producto inexistente o nulo"),
-        ("DQ004_QUANTITY_OUT_OF_RANGE", "Cantidad fuera de rango"),
-        ("DQ005_PRICE_INVALID", "Precio nulo o no positivo"),
-        ("DQ006_DISCOUNT_INVALID", "Descuento fuera de política"),
-        ("DQ007_REGION_MISSING", "Región ausente"),
-        ("DQ008_REGION_MISMATCH", "Región no coincide con sucursal"),
-        ("DQ009_EVENT_ID_DUPLICATED", "Identificador de evento duplicado"),
+        ("DQ001_INVALID_RUC", "RUC con longitud, caracteres o dígito verificador inválido"),
+        ("DQ002_UNKNOWN_TAXPAYER", "Comprobante asociado a contribuyente desconocido"),
+        ("DQ003_DUPLICATE_DOCUMENT", "Identificador de comprobante duplicado"),
+        ("DQ004_NEGATIVE_AMOUNT", "Monto imponible negativo"),
+        ("DQ005_IMPOSSIBLE_AMOUNT", "Monto imponible sobre umbral plausible del laboratorio"),
+        ("DQ006_NEGATIVE_TAX", "Impuesto negativo"),
     ],
     ["rule_id", "rule_description"],
 )
-
-failed_by_rule = (
-    evaluated_sales.select(F.explode("dq_reasons").alias("rule_id"))
-    .groupBy("rule_id")
-    .agg(F.count("*").alias("failed_rows"))
+failures = (
+    evaluated_taxpayers.select(F.explode("dq_reasons").alias("rule_id"))
+    .unionByName(evaluated_documents.select(F.explode("dq_reasons").alias("rule_id")))
+    .groupBy("rule_id").count().withColumnRenamed("count", "failed_rows")
 )
-total_rows = evaluated_sales.count()
-
+total_rows = taxpayers.count() + documents.count()
 dq_metrics = (
-    rule_dictionary.join(failed_by_rule, "rule_id", "left")
-    .fillna(0, subset=["failed_rows"])
+    rule_dictionary.join(failures, "rule_id", "left").fillna(0, ["failed_rows"])
     .withColumn("total_rows", F.lit(total_rows))
-    .withColumn(
-        "pass_rate",
-        F.round((F.col("total_rows") - F.col("failed_rows")) / F.col("total_rows"), 6),
-    )
+    .withColumn("pass_rate", F.round(1 - F.col("failed_rows") / F.col("total_rows"), 6))
     .withColumn("measured_at", F.current_timestamp())
 )
-
-(
-    dq_metrics.write.mode("overwrite")
-    .option("overwriteSchema", "true")
-    .format("delta")
-    .saveAsTable(f"`{CATALOG}`.`{SILVER_SCHEMA}`.`data_quality_metrics`")
+dq_metrics.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable(
+    f"`{CATALOG}`.`{SILVER_SCHEMA}`.`data_quality_metrics`"
 )
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## 7. Validar el resultado
-# MAGIC
-# MAGIC Observa tres cantidades: Bronze, Silver y cuarentena. Silver incluye
-# MAGIC filas originalmente válidas más regiones recuperadas. La suma no debe
-# MAGIC hacerse directamente porque los registros reprocesados permanecen en
-# MAGIC cuarentena como evidencia histórica.
-
-# COMMAND ----------
-
-display(
-    spark.sql(
-        f"""
-        SELECT 'bronze' AS layer, COUNT(*) AS rows
-        FROM `{CATALOG}`.`{BRONZE_SCHEMA}`.`sales_events`
-        UNION ALL
-        SELECT 'silver', COUNT(*) FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`sales`
-        UNION ALL
-        SELECT 'quarantine_pending', COUNT(*)
-        FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`quarantine_sales`
-        WHERE resolution_status = 'PENDING'
-        UNION ALL
-        SELECT 'quarantine_reprocessed', COUNT(*)
-        FROM `{CATALOG}`.`{SILVER_SCHEMA}`.`quarantine_sales`
-        WHERE resolution_status = 'REPROCESSED'
-        """
-    )
-)
-
-display(
-    spark.table(f"`{CATALOG}`.`{SILVER_SCHEMA}`.`data_quality_metrics`").orderBy(
-        "rule_id"
-    )
-)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Resultado esperado
-# MAGIC
-# MAGIC ✅ Silver confiable, cuarentena auditable, reproceso controlado y
-# MAGIC métricas de calidad.
-# MAGIC
-# MAGIC **Siguiente:** `03_gold_semantic_layer` convertirá estos datos en
-# MAGIC decisiones, KPIs y semántica de negocio para Genie.
+display(dq_metrics.orderBy(F.desc("failed_rows")))

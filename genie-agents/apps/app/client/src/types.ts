@@ -1,7 +1,7 @@
 export type Priority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type DecisionType =
-  | 'APPROVE_REPLENISHMENT'
-  | 'INVESTIGATE'
+  | 'OPEN_INVESTIGATION'
+  | 'REQUEST_CLARIFICATION'
   | 'DISMISS';
 export type ActionStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
 
@@ -12,35 +12,39 @@ export interface AppConfig {
 }
 
 export interface KpiRow {
-  net_revenue: string | number;
-  gross_margin: string | number;
-  units_sold: string | number;
-  critical_alerts: string | number;
-  revenue_at_risk: string | number;
+  declared_sales: string | number;
+  assessed_tax: string | number;
+  claimed_tax_credit: string | number;
+  high_risk_taxpayers: string | number;
+  exposure_amount: string | number;
 }
 
 export interface TrendRow {
   event_date: string;
-  net_revenue: string | number;
-  gross_margin: string | number;
+  declared_sales: string | number;
+  assessed_tax: string | number;
 }
 
 export interface AlertRow {
   alert_id: string;
   priority: Priority;
-  store_name: string;
+  taxpayer_id: string;
+  taxpayer_name: string;
+  ruc: string;
+  segment: string;
   region: string;
-  sku: string;
-  product_name: string;
-  category: string;
-  on_hand_units: string | number;
-  in_transit_units: string | number;
-  avg_daily_units: string | number;
-  days_of_cover: string | number;
-  lead_time_days: string | number;
-  recommended_replenishment_units: string | number;
-  revenue_at_risk: string | number;
-  recommended_action: DecisionType | 'MONITOR';
+  economic_activity: string;
+  risk_score: string | number;
+  declared_sales: string | number;
+  third_party_sales: string | number;
+  sales_gap: string | number;
+  claimed_tax_credit: string | number;
+  credit_ratio: string | number;
+  amendment_count: string | number;
+  signal_count: string | number;
+  primary_signal: string;
+  recommended_action: DecisionType;
+  evidence_summary: string;
 }
 
 export interface ActionRow {
@@ -51,9 +55,10 @@ export interface ActionRow {
   assignee: string;
   notes: string;
   priority: Priority;
-  store_name: string;
-  sku: string;
-  recommended_units: string | number;
+  taxpayer_id: string;
+  taxpayer_name: string;
+  ruc: string;
+  risk_score: string | number;
   created_by: string;
   created_at: string;
   due_at: string;

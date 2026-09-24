@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   CheckCircle2,
-  ClipboardCheck,
+  FileQuestion,
   SearchCheck,
   ShieldX,
   X,
@@ -17,7 +17,7 @@ interface ActionDrawerProps {
 
 const money = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'PEN',
   maximumFractionDigits: 0,
 });
 
@@ -25,24 +25,24 @@ const decisionOptions: Array<{
   value: DecisionType;
   label: string;
   detail: string;
-  icon: typeof ClipboardCheck;
+  icon: typeof SearchCheck;
 }> = [
   {
-    value: 'APPROVE_REPLENISHMENT',
-    label: 'Aprobar reposición',
-    detail: 'Crea tarea con SLA de 24 horas',
-    icon: ClipboardCheck,
+    value: 'OPEN_INVESTIGATION',
+    label: 'Abrir investigación',
+    detail: 'Formaliza la revisión con SLA de 24 horas',
+    icon: SearchCheck,
   },
   {
-    value: 'INVESTIGATE',
-    label: 'Solicitar investigación',
-    detail: 'Crea tarea con SLA de 8 horas',
-    icon: SearchCheck,
+    value: 'REQUEST_CLARIFICATION',
+    label: 'Solicitar aclaración',
+    detail: 'Pide sustento al responsable con SLA de 72 horas',
+    icon: FileQuestion,
   },
   {
     value: 'DISMISS',
     label: 'Descartar alerta',
-    detail: 'Registra justificación y cierra el caso',
+    detail: 'Documenta el criterio y descarta la señal',
     icon: ShieldX,
   },
 ];
@@ -54,7 +54,7 @@ export function ActionDrawer({
   onSubmit,
 }: ActionDrawerProps) {
   const [decisionType, setDecisionType] =
-    useState<DecisionType>('APPROVE_REPLENISHMENT');
+    useState<DecisionType>('OPEN_INVESTIGATION');
   const [assignee, setAssignee] = useState(defaultAssignee);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -63,11 +63,7 @@ export function ActionDrawer({
 
   useEffect(() => {
     if (!alert) return;
-    setDecisionType(
-      alert.recommended_action === 'MONITOR'
-        ? 'INVESTIGATE'
-        : alert.recommended_action,
-    );
+    setDecisionType(alert.recommended_action);
     setAssignee(defaultAssignee);
     setNotes('');
     setError(null);
@@ -114,9 +110,9 @@ export function ActionDrawer({
             <span className={`priority-pill priority-pill--${alert.priority}`}>
               {alert.priority}
             </span>
-            <h2 id="drawer-title">Convertir alerta en acción</h2>
+            <h2 id="drawer-title">Resolver señal de riesgo</h2>
             <p>
-              {alert.store_name} · {alert.sku}
+              {alert.taxpayer_name} · RUC {alert.ruc}
             </p>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="Cerrar">
@@ -141,25 +137,29 @@ export function ActionDrawer({
           <form onSubmit={handleSubmit}>
             <div className="alert-evidence">
               <div>
-                <span>Días de cobertura</span>
-                <strong>{Number(alert.days_of_cover).toFixed(1)}</strong>
+                <span>Score de riesgo</span>
+                <strong>{Number(alert.risk_score).toFixed(0)} / 100</strong>
               </div>
               <div>
-                <span>Lead time</span>
-                <strong>{alert.lead_time_days} días</strong>
+                <span>Señales detectadas</span>
+                <strong>{alert.signal_count}</strong>
               </div>
               <div>
-                <span>Ingreso en riesgo</span>
-                <strong>{money.format(Number(alert.revenue_at_risk))}</strong>
+                <span>Brecha de ventas</span>
+                <strong>{money.format(Number(alert.sales_gap))}</strong>
               </div>
               <div>
-                <span>Unidades sugeridas</span>
-                <strong>
-                  {Number(
-                    alert.recommended_replenishment_units,
-                  ).toLocaleString('es-419')}
-                </strong>
+                <span>Ratio crédito fiscal</span>
+                <strong>{Number(alert.credit_ratio).toFixed(2)}×</strong>
               </div>
+            </div>
+            <div className="evidence-summary">
+              <strong>{alert.primary_signal}</strong>
+              <p>{alert.evidence_summary}</p>
+              <small>
+                Información para priorización; no constituye determinación de
+                incumplimiento ni afirmación de fraude.
+              </small>
             </div>
 
             <fieldset className="decision-options">
@@ -210,7 +210,7 @@ export function ActionDrawer({
                 minLength={8}
                 maxLength={1000}
                 rows={4}
-                placeholder="Describe la evidencia y el resultado esperado…"
+                placeholder="Documenta el criterio, sustento y siguiente paso…"
                 required
               />
             </label>

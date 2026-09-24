@@ -1,66 +1,43 @@
-# Checklist de revisión local
+# Checklist de revisión · Radar Tributario
 
-Esta revisión ocurre antes de conectar o desplegar en Databricks.
+## Alcance y ética
 
-## Historia y alcance
+- [ ] Es un workshop distinto del MVP SIRE.
+- [ ] Todos los datos y RUC son inequívocamente sintéticos.
+- [ ] Puntajes y alertas se describen como señales, nunca prueba de fraude.
+- [ ] La decisión final requiere revisión humana.
 
-- [ ] El caso Pulso Retail es adecuado para una audiencia internacional.
-- [ ] Reposición de inventario es una decisión suficientemente relevante.
-- [ ] La agenda conserva el foco principal en Genie y Apps.
-- [ ] Escala `M` (5 millones) es adecuada; ajustar si se prefiere `S` o `L`.
+## Datos
 
-## Notebooks
+- [ ] Escalas: S ~50k, M ~250k recomendada, L ~1m.
+- [ ] Bronze conserva fuente; Silver aplica reglas y cuarentena.
+- [ ] DQ cubre RUC inválido, desconocidos, duplicados y montos imposibles/negativos.
+- [ ] Solo se recupera el RUC sintético reconstruible.
+- [ ] Reejecutar notebooks no duplica datos.
 
-- [ ] Las explicaciones Markdown permiten conducir cada bloque.
-- [ ] Las reglas de calidad representan problemas realistas.
-- [ ] La corrección automática se limita a región faltante.
-- [ ] Las fórmulas de cobertura e ingreso en riesgo son aceptables.
-- [ ] Catálogo por equipo coincide con el modelo de permisos del cliente.
+## Gold y App
 
-## Genie
+- [ ] Existen `taxpayer_activity_daily`, `risk_queue`, `current_actions`,
+  `data_quality_summary` y `tax_risk_metrics`.
+- [ ] `risk_queue` cumple todos los campos esperados por la App.
+- [ ] `action_tasks` cumple el contrato de 15 columnas.
+- [ ] Decisiones: `OPEN_INVESTIGATION`, `REQUEST_CLARIFICATION`, `DISMISS`.
+- [ ] No se modificó `app/**`.
 
-- [ ] Instrucciones y glosario utilizan la terminología deseada.
-- [ ] Las 12 consultas verificadas cubren las preguntas prioritarias.
-- [ ] Las 15 preguntas de evaluación reflejan el criterio de éxito.
-- [ ] Genie recomienda, pero no escribe.
+## Genie y dashboard
 
-## Databricks App
+- [ ] Se crean dos Spaces: baseline vacío y enriquecido.
+- [ ] Ambos reciben las mismas preguntas para comparación.
+- [ ] Verified queries y evaluación usan PEN, periodo y fuente correctos.
+- [ ] Dashboard usa agregados y no duplica la cola operativa.
+- [ ] Disclaimer sintético visible en README, Genie y dashboard.
 
-- [ ] La interfaz es adecuada para una demostración ejecutiva.
-- [ ] Los KPIs y la cola contienen la información correcta.
-- [ ] Las decisiones permitidas son suficientes.
-- [ ] Responsable, justificación y SLA son obligatorios.
-- [ ] “Tareas recientes” completa el flujo, no solo confirma un clic.
-
-## Seguridad y producción
-
-- [ ] La App solo recibe datos mínimos desde el browser.
-- [ ] Los datos críticos de la alerta se recuperan desde Gold.
-- [ ] Los permisos declarados siguen mínimo privilegio.
-- [ ] Change Data Feed es una extensión adecuada para integraciones.
-
-## Pruebas locales
-
-Ejecutar:
+## Validación
 
 ```bash
 python3 scripts/validate_content.py
-cd app
-npm install
-npm run typecheck
-npm run build
-npm run dev:mock
 ```
 
-La instalación npm requiere conectividad con `registry.npmjs.org`.
-
-## Decisión
-
-- [ ] Aprobado para pruebas en Databricks.
-- [ ] Requiere ajustes antes de desplegar.
-
-Comentarios:
-
-```text
-
-```
+- [ ] Validación local exitosa.
+- [ ] Escala M probada en Databricks.
+- [ ] Consultas verificadas ejecutadas sobre el catálogo del taller.

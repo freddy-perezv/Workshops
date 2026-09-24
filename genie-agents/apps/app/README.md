@@ -1,350 +1,129 @@
-# Laboratorio 2 · Databricks App — Runbook de despliegue
+# Radar Tributario
 
-**Pulso Retail** es un centro de decisiones, no un dashboard con chat.
+Aplicación Databricks AppKit para un workshop de **triage de señales de riesgo
+tributario**. No es un MVP de SIRE ni determina fraude: prioriza contribuyentes,
+expone evidencia analítica y registra decisiones humanas auditables.
 
-La experiencia combina:
+## Experiencia
 
-- KPIs certificados desde una Unity Catalog Metric View.
-- Cola priorizada de alertas de inventario.
-- Genie Agent embebido con conversación multi-turn.
-- Write-back explícito y parametrizado mediante Databricks SQL.
-- Creación y seguimiento de tareas.
+- KPIs ejecutivos de ventas declaradas, impuesto determinado, crédito fiscal,
+  contribuyentes de riesgo alto y exposición priorizada.
+- Tendencia de 30 días de ventas declaradas e impuesto determinado.
+- Cola de contribuyentes ordenada por prioridad y `risk_score`.
+- Genie embebido con alias `radar-tributario`.
+- Drawer de decisión con evidencia y confirmación explícita.
+- Write-back parametrizado y seguimiento de tareas recientes.
+- Mock local, diseño responsive y despliegue rápido en Databricks Apps.
 
-## Flujo del participante
+## Contrato de datos
 
-1. Observa ingreso, margen, unidades e ingreso en riesgo.
-2. Filtra la cola por prioridad.
-3. Selecciona una alerta y revisa su evidencia.
-4. Consulta a Genie para entender contexto y alternativas.
-5. Elige `APPROVE_REPLENISHMENT`, `INVESTIGATE` o `DISMISS`.
-6. Asigna responsable y justifica la decisión.
-7. La App inserta una fila en `<catalog>.ops_<id>.action_tasks`.
-8. La tarea aparece en la App y puede marcarse como completada.
-9. Genie consulta `<catalog>.gold_<id>.current_actions` y cierra el ciclo.
+Recursos esperados por participante:
 
----
+- Gold: `<catalog>.gold_<participant_id>.risk_queue`
+- Gold Metric View: `<catalog>.gold_<participant_id>.tax_risk_metrics`
+- Ops: `<catalog>.ops_<participant_id>.action_tasks`
 
-## Tres modos de ejecución
+`tax_risk_metrics` expone:
 
-| Modo | Acción / comando | Conexión a Databricks | Uso |
+- KPIs: `declared_sales`, `assessed_tax`, `claimed_tax_credit`,
+  `high_risk_taxpayers`, `exposure_amount`.
+- Tendencia: `event_date`, `declared_sales`, `assessed_tax`.
+
+`risk_queue` expone `alert_id`, `priority`, `taxpayer_id`, `taxpayer_name`,
+`ruc`, `segment`, `region`, `economic_activity`, `risk_score`,
+`declared_sales`, `third_party_sales`, `sales_gap`, `claimed_tax_credit`,
+`credit_ratio`, `amendment_count`, `signal_count`, `primary_signal`,
+`recommended_action` y `evidence_summary`.
+
+`action_tasks` expone `action_id`, `alert_id`, `decision_type`, `status`,
+`assignee`, `notes`, `priority`, `taxpayer_id`, `taxpayer_name`, `ruc`,
+`risk_score`, `created_by`, `created_at`, `due_at` e `is_overdue`.
+
+Decisiones válidas:
+
+- `OPEN_INVESTIGATION`
+- `REQUEST_CLARIFICATION`
+- `DISMISS`
+
+## Seguridad del write-back
+
+El navegador envía únicamente `alertId`, `decisionType`, `assignee` y `notes`.
+El backend valida el payload con Zod y recupera prioridad, contribuyente, RUC y
+score de manera autoritativa desde `risk_queue`. Los valores SQL usan parámetros
+tipados; los nombres de tabla provienen de recursos de la App y se validan como
+identificadores Unity Catalog de tres partes. Una alerta mantiene como máximo
+una tarea activa (`OPEN` o `IN_PROGRESS`).
+
+## Despliegue por la UI de Databricks Apps
+
+Crear una Custom App desde esta carpeta (`apps/app`) y asociar exactamente estos
+aliases:
+
+| Alias | Tipo | Recurso | Permiso |
 | --- | --- | --- | --- |
-| **UI de Apps + Git folder (workshop)** | **Workspace → Apps → Create → Deploy** | **Sí (navegador)** | **Camino del lab** |
-| Asset Bundle (CLI) | `bundle deploy` + `bundle run` | Sí (CLI en tu laptop) | Alternativa si ya tienes CLI |
-| Mock local | `npm run dev:mock` | No | Opcional — revisar UI sin backend |
-| Desarrollo conectado | `npm run dev` | Sí (`.env`) | Solo desarrollo local |
+| `sql-warehouse` | SQL warehouse | Warehouse del workshop | `CAN_USE` |
+| `genie-space` | Genie Space | Space de Radar Tributario | `CAN_RUN` |
+| `risk-queue` | Tabla UC | `gold_<id>.risk_queue` | `SELECT` |
+| `tax-risk-metrics` | Tabla/Metric View UC | `gold_<id>.tax_risk_metrics` | `SELECT` |
+| `actions-table-read` | Tabla UC | `ops_<id>.action_tasks` | `SELECT` |
+| `actions-table-write` | Tabla UC | La misma `action_tasks` | `MODIFY` |
 
-> **En el workshop se usa la UI de Apps.** No necesitas Databricks CLI, terminal
-> de laptop ni editar `databricks.yml`. El login del navegador (workspace) es
-> suficiente. El código debe estar en el workspace (Git folder / Repos).
+Activar el scope `dashboards.genie`. Los aliases deben coincidir con
+`app.yaml`; no usar nombres automáticos como `table` o `table-2`.
 
----
+Después, seleccionar **Deploy**, elegir la carpeta que contiene `app.yaml` y
+esperar a que la App esté en estado **Running**.
 
-## Despliegue por UI de Apps (camino del workshop)
+## Despliegue con Asset Bundle
 
-No necesitas Databricks CLI, terminal de laptop ni editar `databricks.yml`.
-El login del navegador (workspace) es suficiente.
-
-### Paso 1 — Prerrequisitos
-
-Antes de crear la App, verifica que todo esté en su sitio:
-
-- Notebooks 00–03 ejecutadas con **tu catálogo**.
-- Tablas existentes:
-  - `<catalogo>.gold_<id>.decision_queue`
-  - `<catalogo>.gold_<id>.retail_performance_metrics`
-  - `<catalogo>.ops_<id>.action_tasks`
-- Lab 1 completado: Genie Space configurado con esas tablas e instrucciones
-  (no un space vacío).
-- SQL warehouse encendido, con permiso `CAN_USE`.
-- Código del repositorio disponible en el workspace (Git folder / Repos).
-
-Anota estos datos; los necesitarás al crear la App:
-
-| Dato | Dónde encontrarlo |
-| --- | --- |
-| Nombre de catálogo | El catálogo que usaste en las notebooks 00–03 |
-| ID del warehouse | SQL Warehouses → tu warehouse → ID en la URL `/sql/warehouses/<id>` (no el nombre) |
-| ID del Genie Space | Genie → el space del Lab 1 → ID en la URL `/genie/rooms/<id>` |
-| Nombre de la App | Un nombre corto que cumpla las reglas del paso 2 |
-
-### Paso 2 — Nombre de la App
-
-- **2–30 caracteres**, solo minúsculas y guiones.
-- **Único** en el workspace.
-- No uses tu correo (supera 30 caracteres). Ejemplos: `pulso-ana`,
-  `pulso-eq01`, `pulso-retail-fpv`.
-
-### Paso 3 — Crear la App
-
-1. En el workspace: **Apps** → **Create App**.
-2. Selecciona **Custom** / from code.
-3. Asigna el nombre elegido en el paso 2.
-
-No cierres la pantalla: a continuación vas a agregar los recursos.
-
-### Paso 4 — Resources
-
-Aquí se conecta la App con el warehouse, Genie y las tablas. Esto **sustituye**
-editar `databricks.yml` (que no se toca en este camino).
-
-> **Importante:** el **nombre** (alias) de cada recurso en la UI **debe**
-> coincidir letra por letra con el `valueFrom` declarado en `app.yaml`. Si la
-> UI propone nombres genéricos (`table`, `table-2`, …), **renómbralos**. Si no
-> coinciden, la App abre pero muestra *“No se pudo leer la configuración”*.
-
-| Nombre del recurso (alias) | Tipo | Qué seleccionar | Permiso |
-| --- | --- | --- | --- |
-| `sql-warehouse` | SQL warehouse | El warehouse del lab | `CAN_USE` |
-| `genie-space` | Genie Space | El space del Lab 1 | `CAN_RUN` |
-| `queue-table` | Tabla UC | `<catalogo>.gold_<id>.decision_queue` | `SELECT` |
-| `metric-view` | Tabla UC | `<catalogo>.gold_<id>.retail_performance_metrics` | `SELECT` |
-| `actions-table-read` | Tabla UC | `<catalogo>.ops_<id>.action_tasks` | `SELECT` |
-| `actions-table-write` | Tabla UC | La **misma** `<catalogo>.ops_<id>.action_tasks` | `MODIFY` |
-
-Las tablas Gold/ops se llaman igual para todos los equipos; lo único que cambia
-es el catálogo.
-
-Si la UI muestra **User authorization / scopes**, activa **Genie**
-(`dashboards.genie`). Sin esto el chat embebido no autentica.
-
-### Paso 5 — Deploy
-
-1. Botón **Deploy**.
-2. La UI pide un path de workspace. Elige la carpeta que contiene `app.yaml`,
-   por ejemplo:
-
-   `/Workspace/Users/<tu-usuario>/Workshops/genie-agents/apps/app`
-
-   **No** elijas la raíz del repo (`genie-agents/`) ni `apps/`. La carpeta
-   correcta es `app/`.
-
-3. Espera a que el status cambie a **Running** (tarda varios minutos en el
-   primer arranque: `npm install` + build). **Compute Active no alcanza**;
-   la App necesita estar en Running.
-
-### Paso 6 — Comprobar
-
-Abre la URL de la App cuando el status sea **Running**. Deberías ver:
-
-- **KPIs** — ingreso, margen, unidades, ingreso en riesgo.
-- **Cola de alertas** — filtrada por prioridad, con evidencia por alerta.
-- **Genie** — panel de conversación embebido (multi-turn).
-- **Write-back** — selecciona una alerta, elige acción, asigna responsable.
-  La tarea debe aparecer en seguimiento.
-
-Si Genie responde pero los KPIs están vacíos: los alias de los recursos no
-coinciden con los `valueFrom` de `app.yaml` (ver tabla del paso 4).
-
-### Qué NO hacer en este camino
-
-- **No** instalar Databricks CLI ni correr `bundle deploy` / `bundle run`.
-- **No** editar `databricks.yml` ni los `REPLACE_WITH_...`.
-- **No** crear `.env`.
-- **No** cambiar los `valueFrom` de `app.yaml`.
-- **No** hacer Deploy sobre la raíz del repo (debe ser la carpeta `app/`).
-
----
-
-## Alternativa: CLI / Asset Bundle
-
-> Solo si ya tienes Databricks CLI en tu laptop y prefieres línea de comandos.
-> Si seguiste el camino por UI de Apps, salta esta sección.
-
-Prerrequisito: [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html)
-instalado (`databricks -v`). Todos los comandos se ejecutan **en la terminal
-de tu laptop**, desde la carpeta `app/` (donde está `databricks.yml`).
-
-**1. Autenticar**
-
-```bash
-databricks auth login --host https://<tu-workspace>
-databricks current-user me
-```
-
-Si aparece **Multiple profiles match host**, agrega `--profile <nombre>` a
-todos los comandos siguientes.
-
-**2. Editar `targets.dev` en `databricks.yml`**
-
-Completa solo el bloque `targets:` → `dev:`. No toques los `${var....}` de
-`resources`.
-
-| Variable | Dónde encontrarla |
-| --- | --- |
-| `workspace.host` | URL del workspace (completa, incluido `.net`) |
-| `sql_warehouse_id` | ID del warehouse (URL `/sql/warehouses/<id>`) |
-| `genie_space_id` | ID del Genie Space (URL `/genie/rooms/<id>`) |
-| `catalog_name` | Catálogo de las notebooks 00–04 |
-| `participant_id` | El mismo identificador usado en las notebooks |
-| `app_name` | Nombre corto (2–30 caracteres, minúsculas y guiones) |
-
-**3. Validar, deployar, publicar**
+Completar las variables de `targets.dev` en `databricks.yml` y ejecutar desde
+esta carpeta:
 
 ```bash
 databricks bundle validate
 databricks bundle deploy
-databricks bundle run pulso_retail
+databricks bundle run radar_tributario
 ```
 
-`pulso_retail` es la clave del recurso en el YAML, **no** el `app_name`.
-Si cambias código después del deploy, repite `bundle deploy` + `bundle run`.
-El primer arranque tarda varios minutos. Si aparece `--profile`, úsalo en los
-tres comandos.
+## Desarrollo local
 
-### Cómo se conectan `app.yaml` y `databricks.yml`
+Requiere Node.js 22 o superior.
 
-`valueFrom` **no es el nombre de la tabla** en Unity Catalog. Es el `name` del
-recurso declarado en el bundle. Databricks inyecta el valor real (ID de
-warehouse, ID de Genie, o `catalog.schema.tabla`) en la variable de entorno.
-
-El catálogo puede ser el mismo para todos. Los schemas cambian según
-`participant_id`, por ejemplo `gold_freddy` y `ops_freddy`.
-
-| Variable de entorno (`app.yaml`) | `valueFrom` (alias) | Recurso en `databricks.yml` | Valor que termina usando la App |
-| --- | --- | --- | --- |
-| `DATABRICKS_WAREHOUSE_ID` | `sql-warehouse` | `sql_warehouse.id` | ID del warehouse |
-| `DATABRICKS_GENIE_SPACE_ID` | `genie-space` | `genie_space.space_id` | ID del Space |
-| `GOLD_QUEUE_TABLE` | `queue-table` | `${catalog}.gold_${id}.decision_queue` | Nombre UC de 3 partes |
-| `GOLD_METRIC_VIEW` | `metric-view` | `${catalog}.gold_${id}.retail_performance_metrics` | Nombre UC de 3 partes |
-| `OPS_ACTIONS_TABLE` | `actions-table-read` | `${catalog}.ops_${id}.action_tasks` | Nombre UC de 3 partes |
-
-No uses aliases genéricos de la UI (`table`, `table-2`, `table-3`): ni el
-bundle ni la App los reconocen, y la App muestra *No se pudo leer la
-configuración*.
-
----
-
-## Si algo falla
-
-| Recurso | Permiso requerido |
-| --- | --- |
-| SQL Warehouse | `CAN_USE` |
-| Genie Space | `CAN_RUN` |
-| `gold_<id>.decision_queue` | `SELECT` |
-| `gold_<id>.retail_performance_metrics` | `SELECT` |
-| `ops_<id>.action_tasks` | `SELECT` + `MODIFY` |
-
-Si usaste la **UI de Apps**, los permisos se asignan en los recursos del
-paso 4. Si usaste **CLI / Asset Bundle**, están en `databricks.yml` →
-`resources.apps.pulso_retail.resources`.
-
-Problemas frecuentes:
-
-- **App Unavailable / No source code** → no se hizo Deploy. En la UI: botón
-  Deploy sobre la carpeta `app/` con `app.yaml` y recursos bien aliasados.
-  En CLI: falta `bundle run pulso_retail` después de `bundle deploy`.
-- **No se pudo leer la configuración** (Genie en línea, KPIs vacíos) →
-  los nombres (alias) de los recursos no coinciden con los `valueFrom` de
-  `app.yaml`. Deben ser `sql-warehouse`, `genie-space`, `queue-table`,
-  `metric-view`, `actions-table-read`, `actions-table-write` — no `table` /
-  `table-2`. Corrige los alias y vuelve a hacer Deploy.
-- **Genie no aparece embebido** → verifica que el ID del Genie Space sea
-  correcto y que el scope `dashboards.genie` esté activo.
-- **Warehouse no responde** → verifica que esté encendido y que el recurso
-  use el **ID** (no el nombre).
-- **App name must be between 2 and 30 characters** → acorta el nombre.
-- **(Solo CLI) `databricks.yml not found`** → el comando no se corrió desde
-  `app/`.
-- **(Solo CLI) `cannot configure default credentials`** → falta
-  `auth login` contra el mismo host.
-- **(Solo CLI) `Multiple profiles match host`** → agrega
-  `--profile <nombre>`.
-- **Host metadata / URL rara** → revisa que el host no esté truncado
-  (`.ne` en lugar de `.net`).
-
-Para más detalle: [`../docs/TROUBLESHOOTING.md`](../docs/TROUBLESHOOTING.md).
-
----
-
-## Modos auxiliares (no son el camino del workshop)
-
-### Mock local (opcional)
+Preview sin Databricks:
 
 ```bash
-node --version   # requiere Node.js 22 o superior
 npm install
 npm run dev:mock
 ```
 
-Abrir `http://localhost:5173`. Datos ficticios; acciones solo en memoria.
-
-### Desarrollo conectado (solo dev local)
-
-1. Crear `.env` a partir de `.env.example`.
-2. Completar host, warehouse, Genie Space y tablas.
-3. Autenticarse con Databricks CLI.
-4. Ejecutar:
+Desarrollo conectado:
 
 ```bash
+cp .env.example .env
+# completar host, IDs y nombres UC
 npm install
 npm run dev
 ```
 
-> **`.env` es solo para desarrollo local.** No lo uses como despliegue y no lo
-> subas a git.
+No guardar `.env`, tokens ni secretos en git.
 
----
+## Validación
 
-## Recursos declarados en la App
-
-`databricks.yml` declara:
-
-- SQL warehouse con `CAN_USE`.
-- Genie Space con `CAN_RUN`.
-- `gold_<id>.decision_queue` con `SELECT`.
-- `gold_<id>.retail_performance_metrics` con `SELECT`.
-- `ops_<id>.action_tasks` con `SELECT` y `MODIFY`.
-
-Databricks Apps concede además `USE CATALOG` y `USE SCHEMA` para los securables
-declarados.
-
----
-
-## Seguridad del write-back
-
-- El navegador no envía SQL.
-- El backend valida el payload con Zod.
-- El backend recupera prioridad, sucursal, producto y unidades desde
-  `gold_<id>.decision_queue`; no confía en esos valores del cliente.
-- Todos los valores se envían como parámetros tipados.
-- Los nombres de tabla proceden de recursos de Databricks Apps y se validan
-  como nombres UC de tres partes.
-- Una alerta no recibe una segunda tarea mientras tenga otra `OPEN` o
-  `IN_PROGRESS`.
-- Genie solo lee y recomienda. La escritura requiere una confirmación explícita
-  en la interfaz.
-
-## Arquitectura del código
-
-```text
-app/
-├── client/
-│   └── src/
-│       ├── components/         UI de KPIs, tendencia, Genie, cola y tareas
-│       ├── App.tsx             Composición de la experiencia
-│       ├── mock-data.ts        Preview local
-│       └── use-workshop-data.ts
-├── config/queries/             SQL parametrizado de lectura
-├── server/
-│   ├── routes/decision-routes.ts
-│   └── server.ts
-├── app.yaml
-└── databricks.yml
+```bash
+npm run lint
+npm run build
 ```
 
-## Consultas y ejecución
+El build sincroniza AppKit antes de compilar. Las consultas parametrizadas
+viven en `config/queries`; las mutaciones están en
+`server/routes/decision-routes.ts`.
 
-Las consultas en `config/queries` se ejecutan con el service principal de la
-App. El backend utiliza AppKit `analytics.query()` para las mutaciones. Genie se
-expone con alias `pulso-retail` y el componente `GenieChat`.
+## Solución rápida de problemas
 
-## Definición de “alto impacto”
-
-La UI utiliza progresive disclosure:
-
-- Primero muestra magnitud y riesgo.
-- Después permite inspeccionar evidencia.
-- Finalmente solicita decisión, responsable y justificación.
-
-La operación nunca queda implícita: la pantalla confirma el `action_id` y la
-tarea aparece en seguimiento.
+- **KPIs vacíos:** revisar aliases y permisos `SELECT`.
+- **Genie no carga:** revisar `genie-space`, scope `dashboards.genie` y alias
+  `radar-tributario`.
+- **No se crea la tarea:** revisar `MODIFY` sobre `action_tasks`, warehouse y
+  columnas del contrato.
+- **La App no inicia:** verificar Node 22+, `app.yaml` y que el deploy apunte a
+  esta carpeta, no a la raíz del repositorio.

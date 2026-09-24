@@ -6,9 +6,9 @@ interface GeniePanelProps {
 }
 
 const prompts = [
-  '¿Por qué estas alertas son críticas?',
+  '¿Qué explica las señales críticas?',
   '¿Qué decisiones se tomaron hoy?',
-  '¿Quedan alertas críticas sin atender?',
+  '¿Qué contribuyentes requieren revisión?',
 ];
 
 export function GeniePanel({ mockMode }: GeniePanelProps) {
@@ -20,7 +20,7 @@ export function GeniePanel({ mockMode }: GeniePanelProps) {
         </div>
         <div>
           <p className="eyebrow">Genie Agent</p>
-          <h2>Analista de operaciones</h2>
+          <h2>Copiloto de riesgo tributario</h2>
         </div>
         <span className="online-badge">En línea</span>
       </div>
@@ -30,9 +30,9 @@ export function GeniePanel({ mockMode }: GeniePanelProps) {
           <div className="mock-chat__message mock-chat__message--agent">
             <Bot size={17} />
             <p>
-              Encontré <strong>18 alertas críticas</strong>. La mayor exposición
-              está en la región Centro, impulsada por Frescos con cobertura inferior al
-              lead time.
+              Encontré <strong>18 contribuyentes de riesgo alto</strong>. La
+              mayor exposición priorizada está en Lima, impulsada por brechas
+              entre ventas declaradas e información de terceros.
             </p>
           </div>
           <div className="mock-chat__context">
@@ -55,7 +55,7 @@ export function GeniePanel({ mockMode }: GeniePanelProps) {
         </div>
       ) : (
         <div className="genie-chat-host">
-          <GenieChat alias="pulso-retail" />
+          <GenieChat alias="radar-tributario" />
         </div>
       )}
     </section>

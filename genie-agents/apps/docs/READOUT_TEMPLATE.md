@@ -1,63 +1,38 @@
-# Readout y plan de 30 días
+# Readout · Radar Tributario
 
-Completar una copia por equipo durante los últimos 10 minutos.
+> Este readout usa exclusivamente datos sintéticos. Las señales no prueban
+> fraude ni representan actuaciones oficiales.
 
-## Resultado del workshop
+## Resultado
 
-- **Equipo:**
-- **Persona usuaria objetivo:**
-- **Pregunta prioritaria:**
-- **Decisión registrada:**
-- **Responsable asignado:**
-- **Resultado de evaluación Genie:** ___ / 15
+- Equipo:
+- Escala ejecutada:
+- Señal explicada:
+- Limitación de calidad observada:
+- Diferencia principal baseline vs enriquecido:
+- Acción humana registrada:
+- Resultado de evaluación Genie: ___ / 16
 
 ## Evidencia
 
-- Catálogo:
-- Genie Space:
-- Databricks App:
-- `action_id` generado:
-- Pregunta que mejor respondió Genie:
-- Pregunta que requiere mejora:
+- Catálogo/schemas:
+- Space baseline:
+- Space enriquecido:
+- App:
+- Dashboard:
+- `action_id` sintético:
 
-## Backlog priorizado
+## Controles antes de producción
 
-| Prioridad | Mejora | Responsable | Criterio de aceptación |
-|---|---|---|---|
-| P0 |  |  |  |
-| P1 |  |  |  |
-| P2 |  |  |  |
+- [ ] Datos autorizados y minimizados.
+- [ ] Definiciones validadas por especialistas tributarios.
+- [ ] Revisión legal, privacidad y debido proceso.
+- [ ] Accesos de mínimo privilegio y segregación.
+- [ ] Evaluación de sesgo, falsos positivos y explicabilidad.
+- [ ] Monitoreo, auditoría y mecanismo de impugnación/corrección.
+- [ ] Owner humano para cada decisión.
 
-## Plan de 30 días
+## Próximos 30 días
 
-### Días 1–7 · Validar
-
-- Conectar tablas empresariales autorizadas.
-- Confirmar definiciones de negocio con owners.
-- Ampliar preguntas benchmark.
-
-### Días 8–15 · Endurecer
-
-- Aplicar permisos de mínimo privilegio.
-- Definir identidad App/OBO y segregación regional.
-- Agregar monitoreo, alertas e idempotencia.
-
-### Días 16–23 · Pilotear
-
-- Incorporar usuarios piloto.
-- Medir exactitud, tiempo hasta decisión y adopción.
-- Resolver preguntas fallidas y casos sin datos.
-
-### Días 24–30 · Decidir
-
-- Comparar resultados con criterios de éxito.
-- Acordar MVP, owner y soporte.
-- Definir promoción a producción o siguiente iteración.
-
-## Criterios de éxito del MVP
-
-- [ ] Genie responde correctamente preguntas prioritarias.
-- [ ] La App completa el flujo principal de decisión.
-- [ ] Los accesos están gobernados mediante Unity Catalog.
-- [ ] Toda escritura tiene usuario, timestamp y justificación.
-- [ ] Existe owner y backlog priorizado.
+Definir responsable, fecha, conjunto de validación, criterio de aceptación y
+plan de pruebas. No conectar datos reales hasta completar los controles.

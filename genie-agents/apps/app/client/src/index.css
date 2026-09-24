@@ -5,7 +5,7 @@
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   color: #171725;
-  background: #f5f6fa;
+  background: #f4f7f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -18,7 +18,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f5f6fa;
+  background:
+    radial-gradient(circle at 75% -10%, rgb(14 116 144 / 8%), transparent 32%),
+    #f4f7f6;
 }
 
 button,
@@ -45,7 +47,7 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #181827;
+  background: #0b2830;
   color: #fff;
   padding: 19px 0;
 }
@@ -56,7 +58,7 @@ button {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: #6767e3;
+  background: linear-gradient(135deg, #0f766e, #0891b2);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -90,7 +92,7 @@ button {
 }
 
 .nav-button--active {
-  box-shadow: inset 3px 0 #8585ff;
+  box-shadow: inset 3px 0 #5eead4;
 }
 
 .sidebar__footer {
@@ -269,7 +271,7 @@ main {
 
 .eyebrow {
   margin: 0 0 4px;
-  color: #6666d9;
+  color: #0f766e;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -469,8 +471,8 @@ main {
 
 .semantic-badge {
   padding: 6px 9px;
-  color: #5757c5;
-  background: #eeeefd;
+  color: #0f766e;
+  background: #e5f6f3;
 }
 
 .trend-chart {
@@ -647,7 +649,7 @@ main {
   place-items: center;
   border-radius: 12px;
   color: #fff;
-  background: #6565dc;
+  background: linear-gradient(135deg, #0f766e, #0891b2);
 }
 
 .online-badge {
@@ -812,7 +814,7 @@ main {
   margin-top: 8px;
   padding: 0;
   border: 0;
-  color: #5e5ecc;
+  color: #0f766e;
   background: transparent;
   font-size: 8px;
   font-weight: 650;
@@ -926,6 +928,37 @@ main {
 .alert-evidence span,
 .alert-evidence strong {
   display: block;
+}
+
+.evidence-summary {
+  margin: -8px 0 20px;
+  padding: 14px;
+  border-left: 3px solid #0f766e;
+  border-radius: 0 10px 10px 0;
+  background: #f0fdfa;
+}
+
+.evidence-summary strong,
+.evidence-summary p,
+.evidence-summary small {
+  display: block;
+}
+
+.evidence-summary strong {
+  color: #115e59;
+  font-size: 11px;
+}
+
+.evidence-summary p {
+  margin: 6px 0;
+  color: #475569;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.evidence-summary small {
+  color: #64748b;
+  font-size: 8px;
 }
 
 .alert-evidence span {
@@ -1061,11 +1094,11 @@ main {
 .primary-button {
   border: 0;
   color: #fff;
-  background: #5f5fd3;
+  background: #0f766e;
 }
 
 .primary-button:hover {
-  background: #5050bd;
+  background: #115e59;
 }
 
 .primary-button:disabled {

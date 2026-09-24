@@ -1,8 +1,8 @@
 -- @param metric_view STRING
 SELECT
   event_date,
-  MEASURE(net_revenue) AS net_revenue,
-  MEASURE(gross_margin) AS gross_margin
+  MEASURE(declared_sales) AS declared_sales,
+  MEASURE(assessed_tax) AS assessed_tax
 FROM IDENTIFIER(:metric_view)
 WHERE event_date >= date_sub(current_date(), 29)
 GROUP BY ALL
