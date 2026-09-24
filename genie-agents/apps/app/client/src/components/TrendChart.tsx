@@ -6,7 +6,7 @@ interface TrendChartProps {
 
 const money = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'PEN',
   notation: 'compact',
   maximumFractionDigits: 1,
 });
@@ -15,7 +15,8 @@ export function TrendChart({ data }: TrendChartProps) {
   const width = 720;
   const height = 210;
   const padding = 18;
-  const values = data.map((row) => Number(row.net_revenue));
+  const values = data.map((row) => Number(row.declared_sales));
+  const taxValues = data.map((row) => Number(row.assessed_tax));
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
   const range = Math.max(max - min, 1);
@@ -39,7 +40,7 @@ export function TrendChart({ data }: TrendChartProps) {
     <div className="trend-chart">
       <div className="trend-chart__summary">
         <div>
-          <span>Ingreso diario</span>
+          <span>Ventas declaradas del último día</span>
           <strong>{money.format(values.at(-1) ?? 0)}</strong>
         </div>
         <span className="trend-chart__period">Últimos 30 días</span>
@@ -51,7 +52,7 @@ export function TrendChart({ data }: TrendChartProps) {
           className="trend-chart__svg"
           viewBox={`0 0 ${width} ${height}`}
           role="img"
-          aria-label="Tendencia de ingreso neto"
+          aria-label="Tendencia de ventas declaradas e impuesto determinado"
         >
           <defs>
             <linearGradient id="trend-fill" x1="0" x2="0" y1="0" y2="1">
@@ -67,6 +68,25 @@ export function TrendChart({ data }: TrendChartProps) {
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
+          />
+          <polyline
+            points={taxValues
+              .map((value, index) => {
+                const x =
+                  padding +
+                  (index / Math.max(taxValues.length - 1, 1)) *
+                    (width - padding * 2);
+                const y =
+                  height -
+                  padding -
+                  ((value - min) / range) * (height - padding * 2);
+                return `${x},${y}`;
+              })
+              .join(' ')}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth="2"
+            strokeDasharray="6 5"
           />
           {points.map((point, index) => (
             <circle

@@ -5,8 +5,8 @@ env:
   - name: DATABRICKS_GENIE_SPACE_ID
     valueFrom: genie-space
   - name: GOLD_QUEUE_TABLE
-    valueFrom: queue-table
+    valueFrom: risk-queue
   - name: GOLD_METRIC_VIEW
-    valueFrom: metric-view
+    valueFrom: tax-risk-metrics
   - name: OPS_ACTIONS_TABLE
     valueFrom: actions-table-read

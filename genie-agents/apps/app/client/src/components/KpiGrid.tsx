@@ -1,8 +1,8 @@
 import {
   CircleDollarSign,
-  PackageCheck,
+  ReceiptText,
   ShieldAlert,
-  TrendingUp,
+  Landmark,
 } from 'lucide-react';
 import type { KpiRow } from '../types';
 
@@ -12,7 +12,7 @@ interface KpiGridProps {
 
 const compactMoney = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'PEN',
   notation: 'compact',
   maximumFractionDigits: 1,
 });
@@ -21,30 +21,30 @@ const integer = new Intl.NumberFormat('es-419', { maximumFractionDigits: 0 });
 export function KpiGrid({ data }: KpiGridProps) {
   const kpis = [
     {
-      label: 'Ingreso neto · 30d',
-      value: compactMoney.format(Number(data?.net_revenue ?? 0)),
-      detail: 'Datos certificados Gold',
+      label: 'Ventas declaradas · 30d',
+      value: compactMoney.format(Number(data?.declared_sales ?? 0)),
+      detail: 'Base imponible observada',
       icon: CircleDollarSign,
       tone: 'violet',
     },
     {
-      label: 'Margen bruto · 30d',
-      value: compactMoney.format(Number(data?.gross_margin ?? 0)),
-      detail: 'Después de costo estimado',
-      icon: TrendingUp,
+      label: 'Impuesto determinado',
+      value: compactMoney.format(Number(data?.assessed_tax ?? 0)),
+      detail: 'Acumulado últimos 30 días',
+      icon: Landmark,
       tone: 'blue',
     },
     {
-      label: 'Unidades vendidas',
-      value: integer.format(Number(data?.units_sold ?? 0)),
-      detail: 'Eventos validados',
-      icon: PackageCheck,
+      label: 'Crédito fiscal declarado',
+      value: compactMoney.format(Number(data?.claimed_tax_credit ?? 0)),
+      detail: 'Comprobantes consolidados',
+      icon: ReceiptText,
       tone: 'green',
     },
     {
-      label: 'Ingreso en riesgo',
-      value: compactMoney.format(Number(data?.revenue_at_risk ?? 0)),
-      detail: `${integer.format(Number(data?.critical_alerts ?? 0))} alertas críticas`,
+      label: 'Exposición priorizada',
+      value: compactMoney.format(Number(data?.exposure_amount ?? 0)),
+      detail: `${integer.format(Number(data?.high_risk_taxpayers ?? 0))} contribuyentes de riesgo alto`,
       icon: ShieldAlert,
       tone: 'coral',
     },

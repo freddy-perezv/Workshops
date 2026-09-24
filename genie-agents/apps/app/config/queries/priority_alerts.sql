@@ -4,19 +4,23 @@
 SELECT
   alert_id,
   priority,
-  store_name,
+  taxpayer_id,
+  taxpayer_name,
+  ruc,
+  segment,
   region,
-  sku,
-  product_name,
-  category,
-  on_hand_units,
-  in_transit_units,
-  avg_daily_units,
-  days_of_cover,
-  lead_time_days,
-  recommended_replenishment_units,
-  revenue_at_risk,
-  recommended_action
+  economic_activity,
+  risk_score,
+  declared_sales,
+  third_party_sales,
+  sales_gap,
+  claimed_tax_credit,
+  credit_ratio,
+  amendment_count,
+  signal_count,
+  primary_signal,
+  recommended_action,
+  evidence_summary
 FROM IDENTIFIER(:queue_table)
 WHERE (:priority = 'ALL' OR priority = :priority)
 ORDER BY
@@ -26,6 +30,6 @@ ORDER BY
     WHEN 'MEDIUM' THEN 3
     ELSE 4
   END,
-  revenue_at_risk DESC,
+  risk_score DESC,
   alert_id
 LIMIT :row_limit

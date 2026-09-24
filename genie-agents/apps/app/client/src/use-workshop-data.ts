@@ -15,9 +15,9 @@ import type {
 
 const MOCK_MODE = import.meta.env.VITE_MOCK_MODE === 'true';
 const MOCK_CONFIG: AppConfig = {
-  queueTable: 'workshop_retail.gold.decision_queue',
-  metricView: 'workshop_retail.gold.retail_performance_metrics',
-  actionsTable: 'workshop_retail.ops.action_tasks',
+  queueTable: 'workshop_tax.gold.risk_queue',
+  metricView: 'workshop_tax.gold.tax_risk_metrics',
+  actionsTable: 'workshop_tax.ops.action_tasks',
 };
 
 export function useWorkshopData(priority: Priority | 'ALL') {
@@ -56,9 +56,8 @@ export function useWorkshopData(priority: Priority | 'ALL') {
   const kpiParameters = useMemo(
     () => ({
       metric_view: sql.string(config?.metricView ?? ''),
-      queue_table: sql.string(config?.queueTable ?? ''),
     }),
-    [config],
+    [config?.metricView],
   );
   const alertParameters = useMemo(
     () => ({
@@ -122,12 +121,10 @@ export function useWorkshopData(priority: Priority | 'ALL') {
           assignee: input.assignee,
           notes: input.notes,
           priority: alert.priority,
-          store_name: alert.store_name,
-          sku: alert.sku,
-          recommended_units:
-            input.decisionType === 'APPROVE_REPLENISHMENT'
-              ? alert.recommended_replenishment_units
-              : 0,
+          taxpayer_id: alert.taxpayer_id,
+          taxpayer_name: alert.taxpayer_name,
+          ruc: alert.ruc,
+          risk_score: alert.risk_score,
           created_by: identity,
           created_at: new Date().toISOString(),
           due_at: new Date(Date.now() + 24 * 3_600_000).toISOString(),

@@ -1,5 +1,5 @@
 bundle:
-  name: pulso-retail
+  name: radar-tributario
 
 variables:
   sql_warehouse_id:
@@ -8,7 +8,7 @@ variables:
     description: Genie Space ID
   genie_space_name:
     description: Genie Space display name
-    default: Pulso Retail
+    default: Radar Tributario
   catalog_name:
     description: Catálogo compartido utilizado en las notebooks
   participant_id:
@@ -18,9 +18,9 @@ variables:
 
 resources:
   apps:
-    pulso_retail:
+    radar_tributario:
       name: ${var.app_name}
-      description: Centro de decisiones de inventario con Genie y write-back
+      description: Triage de señales de riesgo tributario con Genie y write-back
       source_code_path: ./
       user_api_scopes:
         - dashboards.genie
@@ -34,14 +34,14 @@ resources:
             name: ${var.genie_space_name}
             space_id: ${var.genie_space_id}
             permission: CAN_RUN
-        - name: queue-table
+        - name: risk-queue
           uc_securable:
-            securable_full_name: ${var.catalog_name}.gold_${var.participant_id}.decision_queue
+            securable_full_name: ${var.catalog_name}.gold_${var.participant_id}.risk_queue
             securable_type: TABLE
             permission: SELECT
-        - name: metric-view
+        - name: tax-risk-metrics
           uc_securable:
-            securable_full_name: ${var.catalog_name}.gold_${var.participant_id}.retail_performance_metrics
+            securable_full_name: ${var.catalog_name}.gold_${var.participant_id}.tax_risk_metrics
             securable_type: TABLE
             permission: SELECT
         - name: actions-table-read
@@ -66,4 +66,4 @@ targets:
       genie_space_id: REPLACE_WITH_GENIE_SPACE_ID
       catalog_name: REPLACE_WITH_CATALOG_NAME
       participant_id: REPLACE_WITH_PARTICIPANT_ID
-      app_name: pulso-eq01
+      app_name: radar-eq01

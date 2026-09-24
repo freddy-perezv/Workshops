@@ -9,7 +9,7 @@ createApp({
     }),
     genie({
       spaces: {
-        'pulso-retail': process.env.DATABRICKS_GENIE_SPACE_ID ?? '',
+        'radar-tributario': process.env.DATABRICKS_GENIE_SPACE_ID ?? '',
       },
     }),
     server(),
@@ -18,6 +18,6 @@ createApp({
     setupDecisionRoutes(appkit);
   },
 }).catch((error) => {
-  console.error('[pulso-retail] Unable to start application', error);
+  console.error('[radar-tributario] Unable to start application', error);
   process.exitCode = 1;
 });

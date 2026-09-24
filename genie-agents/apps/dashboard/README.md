@@ -1,173 +1,66 @@
-# Laboratorio 3 · Dashboard ejecutivo generado con Genie
+# Dashboard AI/BI · Radar Tributario
 
-Tiempo objetivo: **20–25 minutos**.
+El dashboard complementa la App: muestra patrones agregados para gestión y
+gobierno. **No replica la cola operativa**, no lista RUC ni contribuyentes y no
+permite decidir casos individuales.
 
-> **La idea que engancha:** en el Lab 1 Genie *respondió* preguntas; en el Lab 2
-> la App *ejecutó* decisiones. En el Lab 3, Genie **diseña la vista ejecutiva
-> completa** a partir de una sola instrucción. El "wow" no es que haya gráficas:
-> es que en menos de dos minutos alguien sin escribir SQL obtiene un tablero
-> que un equipo de BI tardaría días en armar — y sobre los **mismos datos
-> gobernados** que ya certificamos.
+> Datos 100% sintéticos. Los gráficos muestran señales para revisión, no fraude
+> probado ni resultados oficiales de fiscalización.
 
-## Resultado
+## Fuentes
 
-Un dashboard AI/BI construido **100% con Genie / lenguaje natural**, que:
+- `<catalog>.gold_<id>.tax_risk_metrics`
+- `<catalog>.gold_<id>.risk_queue`
+- `<catalog>.gold_<id>.current_actions`
+- `<catalog>.gold_<id>.data_quality_summary`
+- `<catalog>.gold_<id>.taxpayer_activity_daily`
 
-- Usa las tablas Gold y la metric view del workshop (nada de datos nuevos).
-- Presenta KPIs, tendencias, ranking por región, riesgo y calidad.
-- Tiene una jerarquía visual clara, buena paleta y mini-charts.
-- Puede embeberse o enlazarse desde la Databricks App como “vista ejecutiva”.
-
-## Fuentes de datos (no inventar otras)
-
-Reemplaza `<catalog>` por tu catálogo de las notebooks 00–04:
-
-- `<catalog>.gold_<id>.retail_performance_metrics` — metric view certificada (ingreso neto, margen bruto, unidades).
-- `<catalog>.gold_<id>.decision_queue` — alertas priorizadas e ingreso en riesgo.
-- `<catalog>.gold_<id>.current_actions` — decisiones y tareas (write-back de la App).
-- `<catalog>.gold_<id>.data_quality_summary` — calidad por regla.
-- `<catalog>.gold_<id>.sales_daily` — detalle diario para tendencias.
-
-## Cómo usarlo
-
-1. En Databricks, abre **Dashboards** (AI/BI) → **Create dashboard**, o pídeselo
-   a **Genie** desde el Space del Lab 1.
-2. Asocia el **SQL warehouse** del workshop.
-3. Pega el prompt de abajo **reemplazando `<catalog>`** por el tuyo.
-4. Deja que Genie proponga los widgets; luego pídele ajustes finos en lenguaje
-   natural (colores, orden, formato de moneda, agregar un mini-chart, etc.).
-5. Publica y, si quieres, enlaza el dashboard desde la App como acceso directo.
-
-> **Tip:** Genie mejora cuando el prompt define **audiencia, decisiones,
-> métricas exactas, layout y estilo**. El prompt siguiente ya trae todo eso;
-> ajústalo, no lo recortes.
-
----
-
-## Prompt para pegar en Genie
+## Prompt para Genie
 
 ```text
-Actúa como un diseñador senior de dashboards ejecutivos de BI. Crea un
-dashboard AI/BI completo, en español latinoamericano, para un Responsable de
-Operaciones de retail llamado "Pulso Retail · Vista Ejecutiva". El objetivo es
-pasar de la señal de riesgo a la decisión en una sola pantalla, con impacto
-visual inmediato.
+Crea un dashboard AI/BI en español titulado “Radar Tributario · Patrones y
+Gobierno”. Todos los datos son sintéticos. Presenta resultados como señales de
+riesgo para revisión humana, nunca como prueba de fraude.
 
-CONTEXTO DE NEGOCIO
-El negocio prioriza el riesgo de quiebre de stock por sucursal y producto en
-una operación regional, cuida el ingreso en riesgo y da seguimiento a decisiones auditables.
-Toda cifra monetaria es en dólares estadounidenses (USD) y debe mostrarse con formato
-de moneda compacto (por ejemplo, USD 2.4M). Los periodos son explícitos:
-usa los últimos 30 días salvo que el widget indique otra cosa.
+Usa solamente:
+- <catalog>.gold_<id>.tax_risk_metrics
+- <catalog>.gold_<id>.risk_queue
+- <catalog>.gold_<id>.current_actions
+- <catalog>.gold_<id>.data_quality_summary
 
-FUENTES DE DATOS (usa solo estas, no inventes tablas ni columnas)
-- <catalog>.gold_<id>.retail_performance_metrics (metric view: MEASURE(net_revenue),
-  MEASURE(gross_margin), MEASURE(units_sold); dimensiones: event_date, region,
-  channel, category)
-- <catalog>.gold_<id>.decision_queue (priority, region, store_name, sku, category,
-  days_of_cover, lead_time_days, revenue_at_risk, recommended_replenishment_units)
-- <catalog>.gold_<id>.current_actions (created_at, decision_type, status, assignee,
-  due_at, is_overdue, priority, store_name, sku, recommended_units)
-- <catalog>.gold_<id>.data_quality_summary (rule_id, rule_description, failed_rows,
-  total_rows, pass_rate_pct)
-- <catalog>.gold_<id>.sales_daily (detalle diario para tendencia)
+Diseña cuatro secciones:
 
-LAYOUT (de arriba hacia abajo, con jerarquía visual clara)
-1. Fila de 4 KPIs grandes con número principal, etiqueta y micro-tendencia
-   (sparkline) de 30 días:
-   - Ingreso neto (30d)
-   - Margen bruto (30d)
-   - Unidades vendidas (30d)
-   - Ingreso en riesgo (alertas CRITICAL + HIGH)
-   Cada KPI muestra variación vs. periodo anterior con color e ícono (verde
-   sube, rojo baja) y un delta en porcentaje.
-2. Fila central de dos columnas:
-   - Izquierda: gráfico de líneas de ingreso neto y margen bruto por día
-     (últimos 30 días) con área suave y leyenda clara.
-   - Derecha: barras horizontales "Ingreso neto por región (Top 10)",
-     ordenado descendente.
-3. Fila de riesgo:
-   - Tabla "Cola de decisiones" con las 10 alertas de mayor revenue_at_risk:
-     prioridad (chip de color), sucursal, región, SKU, días de cobertura,
-     lead time e ingreso en riesgo. Resalta CRITICAL.
-   - Barras "Ingreso en riesgo por región" (CRITICAL + HIGH).
-4. Fila de calidad y seguimiento:
-   - Barras "Pass rate por regla de calidad" (rule_description, pass_rate_pct)
-     con umbral visual.
-   - Tarjetas/serie "Decisiones tomadas hoy" y "Tareas vencidas" desde
-     current_actions (cuenta por status y is_overdue).
+1. Panorama agregado: tarjetas con MEASURE(declared_sales),
+MEASURE(assessed_tax), MEASURE(claimed_tax_credit) y
+MEASURE(taxpayers_count), con periodo explícito y moneda PEN.
 
-ESTILO Y UX/UI (busca impacto "wow", pero legible y ejecutivo)
-- Paleta profesional y accesible: un color de acento para lo positivo (teal o
-  azul), rojo/ámbar reservados para riesgo y alertas, gris neutro para el resto.
-  Contraste AA, nada de arcoíris.
-- Jerarquía tipográfica: números de KPI grandes y en negrita; etiquetas
-  secundarias en tono atenuado.
-- Espaciado generoso, tarjetas con esquinas redondeadas y separación consistente.
-- Formatos: moneda USD compacta, porcentajes con 1 decimal, miles con separador
-  es-419.
-- Usa mini-charts (sparklines) en los KPIs y micro-indicadores de tendencia.
-- Estados vacíos claros ("Sin alertas para este filtro") y sin inventar filas.
-- Incluye filtros globales por región, categoría y rango de fechas.
+2. Patrones de señales: conteo y puntaje promedio por primary_signal y
+priority; distribución geográfica por region; comparación por segment y
+economic_activity. Usa solo agregados y suprime grupos con menos de 5 filas.
 
-REGLAS
-- No ejecutes ni sugieras escrituras: el dashboard es de solo lectura.
-- No elimines ningún dataset, tabla ni metric view. Si un widget falla,
-  corrige su consulta; nunca borres el dataset que lo alimenta.
-- retail_performance_metrics es una METRIC VIEW: consulta sus medidas con
-  MEASURE(net_revenue), MEASURE(gross_margin), MEASURE(units_sold). NUNCA uses
-  SUM(), AVG() ni COUNT() directamente sobre esas columnas. Para cortes por
-  dimensión (region, category, channel, event_date), agrega la dimensión al
-  SELECT y usa GROUP BY ALL. Ejemplo:
-    SELECT region, MEASURE(net_revenue) AS net_revenue
-    FROM <catalog>.gold_<id>.retail_performance_metrics
-    WHERE event_date >= date_sub(current_date(), 29)
-    GROUP BY ALL
-    ORDER BY net_revenue DESC
-- Las tablas decision_queue, current_actions, data_quality_summary y sales_daily
-  son tablas/vistas normales: ahí sí se usan SUM/COUNT/AVG con GROUP BY.
-- Si un dato no existe, indícalo; no rellenes con valores ficticios.
+3. Calidad: fallas y pass_rate_pct por regla, destacando RUC inválido,
+contribuyente desconocido, duplicados y montos negativos/imposibles.
 
-Entrega el dashboard con los widgets ya dispuestos según el layout, títulos en
-español, y deja los filtros globales aplicados. Luego propón 3 preguntas de
-seguimiento que un ejecutivo haría sobre este tablero.
+4. Seguimiento de investigaciones: conteos de acciones por decision_type,
+status y priority; abiertas, vencidas y evolución por created_at. No muestres
+notes, assignee, taxpayer_id, taxpayer_name, ruc, alert_id ni action_id.
+
+Filtros globales: fecha, región, segmento y actividad económica. Paleta sobria
+con rojo/ámbar solo para prioridad. Incluye una nota visible: “Datos sintéticos;
+las señales requieren revisión y no constituyen prueba de fraude”.
+
+No crees una tabla de cola, ranking de contribuyentes ni vista caso por caso:
+esa función pertenece a la App. El dashboard es de solo lectura.
+
+En tax_risk_metrics usa MEASURE(...) y GROUP BY ALL para dimensiones. En las
+otras fuentes usa agregaciones SQL normales. Si no hay datos, muestra un estado
+vacío; no inventes cifras.
 ```
-
----
-
-## Ajustes finos (pídeselos a Genie después)
-
-- “Cambia las barras de región a Top 8 y ordena por ingreso en riesgo.”
-- “Agrega un sparkline de unidades vendidas al KPI correspondiente.”
-- “Usa ámbar para HIGH y rojo para CRITICAL en la tabla.”
-- “Formatea todos los montos como USD compacto (M/mil).”
-- “Agrega un filtro por canal y por rango de fechas.”
-
-### Si un KPI muestra “Unable to render visualization”
-
-Casi siempre es la **metric view** consultada con `SUM()` en vez de
-`MEASURE()`. No borres el dataset (rompe otros widgets). Corrígelo:
-
-> Edita el dataset que falla usando `MEASURE(net_revenue)`,
-> `MEASURE(gross_margin)`, `MEASURE(units_sold)` sobre
-> `<catalog>.gold_<id>.retail_performance_metrics`, con `GROUP BY ALL` si hay
-> dimensión. No elimines ningún dataset ni tabla.
-
-Borrar un *dataset* del dashboard **no** afecta tus tablas ni la metric view en
-Unity Catalog, pero sí deja sin datos a los widgets que dependían de él. Por eso
-la mejor salida es corregir la consulta, no borrar.
 
 ## Criterio de éxito
 
-- El tablero usa **solo** las fuentes Gold del workshop.
-- KPIs con periodo explícito (30 días) y moneda USD.
-- Jerarquía visual clara, paleta coherente y al menos un mini-chart.
-- Riesgo (CRITICAL/HIGH) y calidad (pass rate) presentes.
-- Cero cifras inventadas; estados vacíos manejados.
-
-## Conexión con la App (opcional)
-
-Enlaza el dashboard publicado como “Vista ejecutiva” desde la Databricks App,
-o compártelo con el equipo. Así el ciclo queda completo: Genie explica (Lab 1),
-la App decide y persiste (Lab 2) y el dashboard comunica el estado ejecutivo
-(Lab 3), todo sobre los mismos datos gobernados.
+- Ningún identificador o nombre de contribuyente visible.
+- Patrones por geografía, segmento y actividad.
+- Calidad y estado agregado de investigaciones.
+- Sin botones de decisión ni duplicación de la cola de la App.
+- Disclaimer sintético visible.

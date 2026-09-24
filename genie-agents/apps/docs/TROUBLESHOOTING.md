@@ -1,116 +1,49 @@
-# Troubleshooting
+# Troubleshooting · Radar Tributario
+
+> Los datos son sintéticos y las alertas solo priorizan revisión.
 
 ## Unity Catalog
 
-### No puede crear el catálogo
+Si falla la creación de schemas o volume, confirme `USE CATALOG`,
+`CREATE SCHEMA`, `CREATE VOLUME`, `READ VOLUME` y `WRITE VOLUME`. El catálogo
+debe existir antes de Notebook 00.
 
-**Síntoma:** `PERMISSION_DENIED` en `CREATE CATALOG`.
+## Rendimiento
 
-**Acción:** utilizar un catálogo creado por el administrador, seleccionar
-`create_catalog=false` y confirmar `USE CATALOG` + `CREATE SCHEMA`.
+Use `S` (~50k) para diagnóstico, `M` (~250k) para el taller y `L` (~1m) solo
+con compute validado. Si `OPTIMIZE` consume tiempo, deje `optimize_tables=false`.
 
-### No puede crear el volume
+## Calidad
 
-Confirmar `CREATE VOLUME` sobre `bronze`. Para external volumes también se
-requiere acceso a la external location; el laboratorio utiliza managed volume.
+- Sin errores: confirme que Notebook 01 terminó y no cambió los módulos.
+- Muchos RUC inválidos: verifique que la expresión de dígito se conservó.
+- Silver vacío: revise joins por `taxpayer_id` y las cuarentenas.
+- La fila recuperada debe permanecer en cuarentena como `REPROCESSED`.
 
-## Notebooks
+## Metric view
 
-### La escala M o L tarda demasiado
-
-- Confirmar que el cluster tiene workers activos.
-- Utilizar Photon.
-- Cambiar temporalmente a escala `S`.
-- Ejecutar Notebook 03 con `optimize_tables=false`.
-
-No reduzcas filas modificando el código a mitad del pipeline: vuelve a ejecutar
-Notebook 00 con la escala deseada y después Notebook 01.
-
-### Falla `CREATE VIEW ... WITH METRICS`
-
-La versión del runtime o SQL warehouse no soporta la sintaxis requerida.
-Actualizar al runtime LTS acordado. Como contingencia, comentar únicamente la
-celda de metric view y utilizar `gold.sales_daily`; la experiencia pierde
-semántica certificada, pero el resto puede continuar.
-
-### Las métricas de calidad están vacías
-
-Verificar que Notebook 01 terminó y que `bronze.sales_events` contiene errores.
-La columna `invalid_store` de la validación debe ser mayor que cero.
-
-### La cuarentena supera ampliamente lo esperado
-
-Validar que el código de región no fue modificado. La región reportada
-está diseñada para coincidir con la región maestra, salvo errores
-intencionales.
+Si `WITH METRICS` no está soportado, actualice runtime/warehouse. En consultas
+use `MEASURE(...)`; no aplique `SUM()` directamente a medidas.
 
 ## Genie
 
-### Genie no ve una tabla
+El baseline debe permanecer sin instrucciones. Si ambas experiencias responden
+igual, confirme que no se copiaron contexto o verified queries al baseline.
+Si Genie afirma fraude, revise las instrucciones y repita E04, E10 y E14.
 
-Confirmar:
+## App
 
-- `USE CATALOG`.
-- `USE SCHEMA` en `gold`.
-- `SELECT` sobre el activo.
-- El SQL warehouse asociado está encendido o puede iniciar.
+La App debe apuntar a `risk_queue`, `tax_risk_metrics` y `action_tasks` del
+participante. Si falla una escritura, compare el contrato de columnas y otorgue
+`MODIFY` solo sobre ops. Este trabajo no modifica `app/**`; una App que aún
+espere nombres retail necesita alineación separada antes del despliegue.
 
-### Genie confunde moneda o margen
+## Dashboard
 
-Verificar que se copiaron las instrucciones completas y que la metric view está
-agregada al Space. Registrar Q01 y Q09 de `verified-queries.sql`.
+Si aparecen RUC o rankings individuales, elimine ese widget y use agregados.
+El dashboard complementa la App y debe suprimir grupos con menos de cinco filas.
 
-### Genie intenta escribir
+## Contingencia
 
-No ejecutar SQL sugerido. Copiar la sección “Decisiones y seguridad” de
-`instructions.md` y repetir E13. La escritura debe ocurrir solo desde la App.
-
-## Databricks App
-
-### La App inicia pero no carga KPIs
-
-Confirmar recursos y variables:
-
-- `DATABRICKS_WAREHOUSE_ID`
-- `GOLD_QUEUE_TABLE`
-- `GOLD_METRIC_VIEW`
-- `OPS_ACTIONS_TABLE`
-
-Los nombres de tabla deben tener exactamente tres partes.
-
-### Error de permisos al consultar
-
-La App necesita:
-
-- `CAN_USE` en el warehouse.
-- `SELECT` en queue, metric view y actions.
-- `USE CATALOG` y `USE SCHEMA` en los padres.
-
-### Error de permisos al confirmar una decisión
-
-Agregar `MODIFY` sobre `ops.action_tasks` al service principal de la App. No
-conceder `MODIFY` sobre las tablas Gold.
-
-### La acción no aparece inmediatamente
-
-Esperar a que termine la escritura y volver a cargar la consulta de tareas. Si
-el warehouse estaba detenido, el primer acceso puede incluir cold start.
-
-### Genie no se renderiza dentro de la App
-
-- Confirmar recurso Genie con `CAN_RUN`.
-- Confirmar `DATABRICKS_GENIE_SPACE_ID`.
-- Confirmar scope `dashboards.genie`.
-- Verificar que el alias del plugin y del componente sea `pulso-retail`.
-
-## Contingencia del workshop
-
-Mantener preparados:
-
-1. Un catálogo escala `S` completamente materializado.
-2. Un Genie Space de respaldo.
-3. Una App desplegada de respaldo.
-4. Capturas de KPIs, cola, confirmación y tarea.
-
-La contingencia permite explicar un paso que falle sin convertir la sesión en
-resolución de permisos.
+Prepare escala S, dos Spaces de respaldo, App desplegada y capturas sin datos
+reales. Nunca sustituya la contingencia con información tributaria productiva.

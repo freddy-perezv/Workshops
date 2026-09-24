@@ -1,4 +1,4 @@
-import { ArrowUpRight, Clock3, Filter } from 'lucide-react';
+import { ArrowUpRight, Filter, ScanSearch } from 'lucide-react';
 import type { AlertRow, Priority } from '../types';
 
 interface DecisionQueueProps {
@@ -10,7 +10,7 @@ interface DecisionQueueProps {
 
 const money = new Intl.NumberFormat('es-419', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'PEN',
   notation: 'compact',
   maximumFractionDigits: 1,
 });
@@ -33,8 +33,8 @@ export function DecisionQueue({
     <section className="panel decision-queue">
       <div className="panel__header">
         <div>
-          <p className="eyebrow">Prioridad operativa</p>
-          <h2>Cola de decisiones</h2>
+          <p className="eyebrow">Triage tributario</p>
+          <h2>Contribuyentes priorizados</h2>
         </div>
         <label className="filter-select">
           <Filter size={15} />
@@ -56,15 +56,15 @@ export function DecisionQueue({
 
       <div className="decision-table" role="table">
         <div className="decision-table__head" role="row">
-          <span>Prioridad / producto</span>
-          <span>Sucursal</span>
-          <span>Cobertura</span>
-          <span>Ingreso en riesgo</span>
+          <span>Contribuyente / señal</span>
+          <span>Segmento / región</span>
+          <span>Score</span>
+          <span>Brecha de ventas</span>
           <span aria-hidden="true" />
         </div>
         {alerts.length === 0 ? (
           <div className="empty-state">
-            No existen alertas para esta prioridad.
+            No existen señales de riesgo para esta prioridad.
           </div>
         ) : (
           alerts.map((alert) => (
@@ -77,29 +77,26 @@ export function DecisionQueue({
               <span className="decision-row__product">
                 <i className={`priority-dot priority-dot--${alert.priority}`} />
                 <span>
-                  <strong>{alert.sku}</strong>
+                  <strong>{alert.taxpayer_name}</strong>
                   <small>
-                    {alert.category} · {alert.priority}
+                    RUC {alert.ruc} · {alert.primary_signal}
                   </small>
                 </span>
               </span>
               <span>
-                <strong>{alert.store_name}</strong>
-                <small>{alert.region}</small>
+                <strong>{alert.segment}</strong>
+                <small>{alert.region} · {alert.economic_activity}</small>
               </span>
               <span>
-                <strong>{Number(alert.days_of_cover).toFixed(1)} días</strong>
+                <strong>{Number(alert.risk_score).toFixed(0)} / 100</strong>
                 <small className="inline-detail">
-                  <Clock3 size={12} /> lead time {alert.lead_time_days}d
+                  <ScanSearch size={12} /> {alert.signal_count} señales
                 </small>
               </span>
               <span>
-                <strong>{money.format(Number(alert.revenue_at_risk))}</strong>
+                <strong>{money.format(Number(alert.sales_gap))}</strong>
                 <small>
-                  {Number(alert.recommended_replenishment_units).toLocaleString(
-                    'es-419',
-                  )}{' '}
-                  unidades
+                  Terceros {money.format(Number(alert.third_party_sales))}
                 </small>
               </span>
               <span className="decision-row__open">

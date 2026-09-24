@@ -10,12 +10,18 @@ function isTrue(value: boolean | string) {
   return value === true || value === 'true';
 }
 
+const decisionLabels = {
+  OPEN_INVESTIGATION: 'Investigación abierta',
+  REQUEST_CLARIFICATION: 'Aclaración solicitada',
+  DISMISS: 'Señal descartada',
+};
+
 export function ActionRail({ actions, onUpdate }: ActionRailProps) {
   return (
     <section className="panel action-rail">
       <div className="panel__header">
         <div>
-          <p className="eyebrow">Write-back activo</p>
+          <p className="eyebrow">Casos con write-back</p>
           <h2>Tareas recientes</h2>
         </div>
         <ListTodo size={20} />
@@ -37,9 +43,9 @@ export function ActionRail({ actions, onUpdate }: ActionRailProps) {
                 )}
                 <span>{isTrue(action.is_overdue) ? 'VENCIDA' : action.status}</span>
               </div>
-              <strong>{action.store_name}</strong>
+              <strong>{action.taxpayer_name}</strong>
               <span>
-                {action.sku} · {action.decision_type.replaceAll('_', ' ')}
+                RUC {action.ruc} · {decisionLabels[action.decision_type]}
               </span>
               <small>{action.assignee}</small>
               {action.status !== 'DONE' && action.status !== 'CANCELLED' && (
