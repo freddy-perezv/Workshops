@@ -56,8 +56,9 @@ export function useWorkshopData(priority: Priority | 'ALL') {
   const kpiParameters = useMemo(
     () => ({
       metric_view: sql.string(config?.metricView ?? ''),
+      queue_table: sql.string(config?.queueTable ?? ''),
     }),
-    [config?.metricView],
+    [config?.metricView, config?.queueTable],
   );
   const alertParameters = useMemo(
     () => ({

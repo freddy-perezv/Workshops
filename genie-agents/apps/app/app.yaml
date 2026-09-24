@@ -5,8 +5,8 @@ env:
   - name: DATABRICKS_GENIE_SPACE_ID
     valueFrom: genie-space
   - name: GOLD_QUEUE_TABLE
-    valueFrom: risk-queue
+    value: radar_tributario_workshop.gold_freddy.risk_queue
   - name: GOLD_METRIC_VIEW
-    valueFrom: tax-risk-metrics
+    value: radar_tributario_workshop.gold_freddy.tax_risk_metrics
   - name: OPS_ACTIONS_TABLE
-    valueFrom: actions-table-read
+    value: radar_tributario_workshop.ops_freddy.action_tasks
